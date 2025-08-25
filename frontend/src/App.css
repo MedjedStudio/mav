@@ -623,12 +623,29 @@ button:disabled {
   overflow: hidden;
   background-color: #f6f8fa;
   border: 1px solid #d0d7de;
+  position: relative;
 }
 
 .admin-thumb-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.thumbnail-error {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #cf222e;
+  background-color: #ffebe9;
+  border: 1px dashed #ff8182;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 3px;
 }
 
 .admin-content-table th:first-child,

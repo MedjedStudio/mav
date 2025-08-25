@@ -655,9 +655,14 @@ function AdminPanel({ user, onUpdate }) {
                               alt="サムネイル" 
                               className="admin-thumb-image"
                               onError={(e) => {
-                                e.target.parentElement.style.display = 'none'
+                                e.target.style.display = 'none'
+                                const placeholder = e.target.parentElement.querySelector('.thumbnail-error')
+                                if (placeholder) placeholder.style.display = 'flex'
                               }}
                             />
+                            <div className="thumbnail-error" style={{display: 'none'}}>
+                              リンク切れ
+                            </div>
                           </div>
                         )}
                         <div className="content-title">{content.title}</div>
