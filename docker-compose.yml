@@ -4,10 +4,10 @@ services:
     container_name: mav-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: mav_db
-      MYSQL_USER: mav_user
-      MYSQL_PASSWORD: mav_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -25,8 +25,8 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - DATABASE_URL=mysql+pymysql://mav_user:mav_password@mysql:3306/mav_db?ssl_disabled=true
-      - MYSQL_PWD=mav_password
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}?ssl_disabled=true
+      - MYSQL_PWD=${MYSQL_PASSWORD}
     networks:
       - mav-network
     depends_on:
@@ -44,7 +44,8 @@ services:
       - ${PWD}/uploads:/app/uploads
     environment:
       - DEBUG=true
-      - DATABASE_URL=mysql+pymysql://mav_user:mav_password@mysql:3306/mav_db
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-very-secure-secret-key-change-this-in-production-12345}
     networks:
       - mav-network
     depends_on:

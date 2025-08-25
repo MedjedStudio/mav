@@ -67,7 +67,39 @@ mav/
 
 ## クイックスタート
 
-### 1. 環境構築
+### 1. 環境設定
+
+まず、環境変数を設定します：
+
+```bash
+# .env.exampleを.envにコピー
+cp .env.example .env
+```
+
+`.env`ファイルを編集して、実際の環境に合わせて設定を変更してください：
+
+```bash
+# バックエンド設定
+BACKEND_PORT=8000
+DEBUG=true
+JWT_SECRET_KEY=your-very-secure-secret-key-change-this-in-production-12345
+
+# データベース設定
+MYSQL_ROOT_PASSWORD=rootpassword
+MYSQL_USER=mav_user
+MYSQL_PASSWORD=mav_password
+MYSQL_DATABASE=mav_db
+
+# フロントエンド設定
+FRONTEND_PORT=3000
+VITE_API_URL=http://192.168.1.6:8000
+```
+
+注意：
+- `JWT_SECRET_KEY`は本番環境では必ず変更してください
+- `VITE_API_URL`は実際のサーバーIPアドレスに合わせて変更してください
+
+### 2. 環境構築
 
 ```bash
 # Docker Composeで全サービスを起動
@@ -77,13 +109,13 @@ sudo docker compose up --build -d
 sudo docker compose run --rm migrate
 ```
 
-### 2. アクセス
+### 3. アクセス
 
 - **フロントエンド**: http://localhost:3000
 - **バックエンドAPI**: http://localhost:8000
 - **API仕様書**: http://localhost:8000/docs
 
-### 3. 初期セットアップ
+### 4. 初期セットアップ
 
 初回アクセス時、管理者アカウントのセットアップ画面が表示されます。
 以下の情報を入力して管理者アカウントを作成してください：
@@ -122,9 +154,9 @@ http://localhost:3000
 ### 3. 管理者アカウントを作成
 
 表示されたフォームに以下を入力：
-- メールアドレス: 任意（例：admin@test.com）
-- ユーザー名: 任意（例：admin）
-- パスワード: 6文字以上（例：password123）
+- メールアドレス: 任意
+- ユーザー名: 任意
+- パスワード: 6文字以上
 - パスワード確認: 同じパスワード
 
 「セットアップ完了」ボタンをクリックすると、自動的に管理画面にログインされます。
