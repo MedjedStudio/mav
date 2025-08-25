@@ -370,6 +370,9 @@ function AdminPanel({ user, onUpdate }) {
   const [editingContent, setEditingContent] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [activeView, setActiveView] = useState('contents') // 'contents', 'categories', or 'profile'
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 10
   
   // カテゴリ管理用の状態
   const [categories, setCategories] = useState([])
@@ -389,13 +392,33 @@ function AdminPanel({ user, onUpdate }) {
     loadCategories()
   }, [])
 
+  useEffect(() => {
+    loadContents()
+  }, [currentPage])
+
   const loadContents = async () => {
     const token = getToken()
     try {
       const response = await axios.get(`${API_BASE_URL}/contents/admin`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setContents(response.data)
+      const allContents = response.data
+      
+      // ページネーション計算
+      const totalItems = allContents.length
+      const pages = Math.ceil(totalItems / itemsPerPage)
+      setTotalPages(pages)
+      
+      // 現在のページが総ページ数を超えている場合は1ページ目に戻る
+      if (currentPage > pages && pages > 0) {
+        setCurrentPage(1)
+        return
+      }
+      
+      // 現在のページの内容を設定
+      const startIndex = (currentPage - 1) * itemsPerPage
+      const endIndex = startIndex + itemsPerPage
+      setContents(allContents.slice(startIndex, endIndex))
     } catch (error) {
       console.error('コンテンツ取得失敗:', error)
     }
@@ -413,6 +436,7 @@ function AdminPanel({ user, onUpdate }) {
           headers: { Authorization: `Bearer ${token}` }
         })
       }
+      setCurrentPage(1) // 新規作成・更新後は1ページ目に戻る
       loadContents()
       setEditingContent(null)
       setShowForm(false)
@@ -428,6 +452,7 @@ function AdminPanel({ user, onUpdate }) {
       await axios.delete(`${API_BASE_URL}/contents/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
+      setCurrentPage(1) // 削除後は1ページ目に戻る
       loadContents()
       setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })
     } catch (error) {
@@ -562,25 +587,111 @@ function AdminPanel({ user, onUpdate }) {
                 新規コンテンツ作成
               </button>
             </div>
-            {contents.map(content => (
-              <div key={content.id} className="content-item">
-                <h4>{content.title}</h4>
-                <p>{content.content.substring(0, 100)}...</p>
-                {content.categories && content.categories.length > 0 && (
-                  <div style={{ margin: '0.5rem 0' }}>
-                    {content.categories.map(cat => (
-                      <span key={cat} className="content-category" style={{ marginRight: '8px' }}>
-                        {cat}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="content-actions">
-                  <button onClick={() => setEditingContent(content)}>編集</button>
-                  <button onClick={() => showDeleteConfirm(content.id, content.title)}>削除</button>
-                </div>
+            <table className="admin-content-table">
+              <thead>
+                <tr>
+                  <th>タイトル</th>
+                  <th>内容</th>
+                  <th>カテゴリ</th>
+                  <th>作成日</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contents.map(content => (
+                  <tr key={content.id}>
+                    <td>
+                      <div className="content-title">{content.title}</div>
+                    </td>
+                    <td>
+                      <div className="content-excerpt">
+                        {content.content.substring(0, 120)}...
+                      </div>
+                    </td>
+                    <td>
+                      <div className="content-categories">
+                        {content.categories && content.categories.length > 0 
+                          ? content.categories.map(cat => (
+                              <span key={cat} className="admin-category-tag">
+                                {cat}
+                              </span>
+                            ))
+                          : <span className="admin-category-tag">未分類</span>
+                        }
+                      </div>
+                    </td>
+                    <td>
+                      {new Date(content.created_at).toLocaleDateString()}
+                    </td>
+                    <td>
+                      <div className="content-actions">
+                        <button onClick={() => setEditingContent(content)}>編集</button>
+                        <button onClick={() => showDeleteConfirm(content.id, content.title)}>削除</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {/* ページネーション */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  ≪
+                </button>
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  ＜
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                  if (
+                    page === 1 || 
+                    page === totalPages || 
+                    (page >= currentPage - 2 && page <= currentPage + 2)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    )
+                  } else if (
+                    page === currentPage - 3 || 
+                    page === currentPage + 3
+                  ) {
+                    return <span key={page} className="pagination-dots">...</span>
+                  }
+                  return null
+                })}
+                
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  ＞
+                </button>
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  ≫
+                </button>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>

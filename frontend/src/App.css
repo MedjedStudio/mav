@@ -476,46 +476,138 @@ button:disabled {
 }
 
 
-.content-item {
+/* 管理画面コンテンツテーブル */
+.admin-content-table {
+  width: 100%;
+  border-collapse: collapse;
   background: #ffffff;
-  padding: 16px;
-  border-radius: 4px;
-  border: 1px solid #d0d7de;
-  margin-bottom: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.content-item h4 {
-  margin-bottom: 8px;
-  color: #24292f;
-  font-size: 16px;
+.admin-content-table thead {
+  background: #f6f8fa;
+  border-bottom: 1px solid #d0d7de;
+}
+
+.admin-content-table th {
+  padding: 12px 16px;
+  text-align: left;
   font-weight: 600;
+  font-size: 14px;
+  color: #24292f;
+  border-right: 1px solid #d0d7de;
 }
 
-.content-item p {
-  color: #656d76;
-  margin-bottom: 12px;
-  line-height: 1.5;
+.admin-content-table th:last-child {
+  border-right: none;
+}
+
+.admin-content-table tbody tr {
+  border-bottom: 1px solid #d0d7de;
+  transition: background-color 0.2s ease;
+}
+
+.admin-content-table tbody tr:hover {
+  background: #f6f8fa;
+}
+
+.admin-content-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.admin-content-table td {
+  padding: 12px 16px;
   font-size: 14px;
+  color: #24292f;
+  border-right: 1px solid #d0d7de;
+  vertical-align: top;
+}
+
+.admin-content-table td:last-child {
+  border-right: none;
+}
+
+.content-title {
+  font-weight: 600;
+  color: #0969da;
+  margin-bottom: 4px;
+}
+
+.content-excerpt {
+  color: #656d76;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 300px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.content-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.admin-category-tag {
+  background-color: #f6f8fa;
+  color: #24292f;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid #d0d7de;
 }
 
 .content-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .content-actions button {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.content-actions button:first-child {
+  color: #24292f;
+  background-color: #f6f8fa;
+  border-color: #d0d7de;
+}
+
+.content-actions button:first-child:hover {
+  background-color: #f3f4f6;
 }
 
 .content-actions button:last-child {
   color: #ffffff;
   background-color: #cf222e;
-  border-color: rgba(27,31,36,0.15);
+  border-color: #cf222e;
 }
 
 .content-actions button:last-child:hover {
   background-color: #a40e26;
+}
+
+/* レガシーサポート用（プロフィール編集などで使用） */
+.content-item {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+  margin-bottom: 16px;
+}
+
+.content-item h4 {
+  margin-bottom: 12px;
+  color: #24292f;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 /* Content item form styles */
@@ -1245,6 +1337,31 @@ button:disabled {
   .pagination-dots {
     padding: 4px 1px;
     font-size: 11px;
+  }
+  
+  /* 管理画面テーブルのレスポンシブ対応 */
+  .admin-content-table {
+    font-size: 12px;
+  }
+  
+  .admin-content-table th,
+  .admin-content-table td {
+    padding: 8px 12px;
+  }
+  
+  .content-excerpt {
+    max-width: 200px;
+    font-size: 11px;
+  }
+  
+  .content-actions button {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+  
+  .admin-category-tag {
+    font-size: 10px;
+    padding: 1px 4px;
   }
 }
 
