@@ -67,47 +67,49 @@ function App() {
 
   return (
     <div className="app">
-      <Header user={user} onLogin={() => setView('login')} onLogout={handleLogout} onProfile={() => setView('profile')} />
+      <Header user={user} onLogout={handleLogout} onProfile={() => setView('profile')} />
       
-      {view === 'login' && (
-        <LoginForm onLogin={handleLogin} onCancel={() => setView('public')} />
-      )}
+      <main className="main-content">
+        {view === 'login' && (
+          <LoginForm onLogin={handleLogin} onCancel={() => setView('public')} />
+        )}
+        
+        {view === 'admin' && user?.role === 'admin' && (
+          <AdminPanel onCategoryManage={() => setView('category-manage')} />
+        )}
+        
+        {view === 'category-manage' && user?.role === 'admin' && (
+          <CategoryManagement onBack={() => setView('admin')} />
+        )}
+        
+        {view === 'profile' && user && (
+          <ProfileEdit user={user} onUpdate={setUser} onCancel={() => setView(user?.role === 'admin' ? 'admin' : 'public')} />
+        )}
+        
+        {(view === 'public' || (user?.role !== 'admin')) && view !== 'profile' && (
+          <PublicView />
+        )}
+      </main>
       
-      {view === 'admin' && user?.role === 'admin' && (
-        <AdminPanel onCategoryManage={() => setView('category-manage')} />
-      )}
-      
-      {view === 'category-manage' && user?.role === 'admin' && (
-        <CategoryManagement onBack={() => setView('admin')} />
-      )}
-      
-      {view === 'profile' && user && (
-        <ProfileEdit user={user} onUpdate={setUser} onCancel={() => setView(user?.role === 'admin' ? 'admin' : 'public')} />
-      )}
-      
-      {(view === 'public' || (user?.role !== 'admin')) && view !== 'profile' && (
-        <PublicView />
-      )}
+      <Footer onLogin={() => setView('login')} />
     </div>
   )
 }
 
 // ヘッダーコンポーネント
-function Header({ user, onLogin, onLogout, onProfile }) {
+function Header({ user, onLogout, onProfile }) {
   return (
     <header className="header">
       <div className="header-container">
-        <h1>MAV CMS</h1>
+        <h1>MAV</h1>
         <div className="auth-section">
-          {user ? (
+          {user && (
             <div>
               <span>ようこそ、{user.username}さん</span>
               {user.role === 'admin' && <span className="admin-badge">管理者</span>}
               <button onClick={onProfile}>プロファイル</button>
               <button onClick={onLogout}>ログアウト</button>
             </div>
-          ) : (
-            <button onClick={onLogin}>管理者ログイン</button>
           )}
         </div>
       </div>
@@ -765,6 +767,22 @@ function PublicView() {
         </ul>
       </div>
     </div>
+  )
+}
+
+// フッターコンポーネント
+function Footer({ onLogin }) {
+  return (
+    <footer className="footer">
+      <div className="footer-container">
+        <div className="footer-content">
+          <p>&copy; 2025 Medjed Studio. All rights reserved.</p>
+          <button onClick={onLogin} className="admin-login-link">
+            Admin
+          </button>
+        </div>
+      </div>
+    </footer>
   )
 }
 

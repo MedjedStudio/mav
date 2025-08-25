@@ -1,4 +1,4 @@
-# MAV CMS
+# MAV
 
 FastAPI + React + MySQLを使用したコンテンツ管理システムです。
 

@@ -18,6 +18,10 @@ body {
   flex-direction: column;
 }
 
+.main-content {
+  flex: 1;
+}
+
 /* Header styles */
 .header {
   background-color: #f6f8fa;
@@ -603,5 +607,51 @@ button:disabled {
   
   .content-article {
     padding: 16px;
+  }
+}
+
+/* Footer styles */
+.footer {
+  margin-top: 40px;
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.footer-container {
+  width: 1280px;
+  margin: 0 auto;
+}
+
+.footer-content {
+  color: #656d76;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-content p {
+  margin: 0;
+}
+
+.admin-login-link {
+  background: transparent;
+  border: none;
+  color: #0969da;
+  font-size: 12px;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.admin-login-link:hover {
+  text-decoration: underline;
+}
+
+/* Responsive footer */
+@media (max-width: 1300px) {
+  .footer-container {
+    width: 100%;
   }
 }
