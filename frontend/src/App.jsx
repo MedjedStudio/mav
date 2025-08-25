@@ -13,6 +13,26 @@ function App() {
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [view, setView] = useState('public') // 'public', 'login', 'admin'
+  const [contentId, setContentId] = useState(null) // URL パラメータから取得するコンテンツID
+  
+  // URLパスを処理
+  useEffect(() => {
+    const path = window.location.pathname
+    const contentMatch = path.match(/\/content\/(\d+)/)
+    if (contentMatch) {
+      setContentId(parseInt(contentMatch[1], 10))
+    }
+    
+    // URLが変更された時の処理
+    const handlePopState = () => {
+      const newPath = window.location.pathname
+      const newMatch = newPath.match(/\/content\/(\d+)/)
+      setContentId(newMatch ? parseInt(newMatch[1], 10) : null)
+    }
+    
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
   
   // 認証状態確認
   useEffect(() => {
@@ -87,7 +107,7 @@ function App() {
         )}
         
         {(view === 'public' || (user?.role !== 'admin')) && view !== 'profile' && (
-          <PublicView />
+          <PublicView contentId={contentId} setContentId={setContentId} />
         )}
       </main>
       
@@ -678,10 +698,12 @@ function ProfileEdit({ user, onUpdate, onCancel }) {
 }
 
 // 公開ビュー
-function PublicView() {
+function PublicView({ contentId, setContentId }) {
   const [contents, setContents] = useState([])
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
+  const [selectedContent, setSelectedContent] = useState(null)
+  const [view, setView] = useState('timeline') // 'timeline' または 'content'
 
   useEffect(() => {
     loadContents()
@@ -691,6 +713,16 @@ function PublicView() {
   useEffect(() => {
     loadContents()
   }, [selectedCategory])
+
+  // URL パラメータで指定されたコンテンツを読み込み
+  useEffect(() => {
+    if (contentId) {
+      loadContentById(contentId)
+    } else {
+      setView('timeline')
+      setSelectedContent(null)
+    }
+  }, [contentId])
 
   const loadContents = async () => {
     try {
@@ -713,6 +745,99 @@ function PublicView() {
     }
   }
 
+  const loadContentById = async (id) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/contents/${id}`)
+      setSelectedContent(response.data)
+      setView('content')
+    } catch (error) {
+      console.error('コンテンツ取得失敗:', error)
+      // コンテンツが見つからない場合はタイムラインに戻る
+      handleBackToTimeline()
+    }
+  }
+
+  const updateUrl = (id) => {
+    const url = id ? `/content/${id}` : '/'
+    window.history.pushState({}, '', url)
+  }
+
+  const handleContentClick = (content) => {
+    setSelectedContent(content)
+    setView('content')
+    setContentId(content.id)
+    updateUrl(content.id)
+  }
+
+  const handleBackToTimeline = () => {
+    setView('timeline')
+    setSelectedContent(null)
+    setContentId(null)
+    updateUrl(null)
+  }
+
+  if (view === 'content' && selectedContent) {
+    return (
+      <div className="public-view">
+        <div className="main-content">
+          <div className="content-nav">
+            <a href="#" onClick={(e) => { e.preventDefault(); handleBackToTimeline() }} className="back-link">
+              BACK
+            </a>
+          </div>
+          <article className="content-detail">
+            <header className="content-header">
+              <h1>{selectedContent.title}</h1>
+              <div className="content-meta">
+                <span>投稿日: {new Date(selectedContent.created_at).toLocaleString()}</span>
+                <div>
+                  {selectedContent.categories && selectedContent.categories.map(cat => (
+                    <span key={cat} className="content-category" style={{ marginLeft: '8px' }}>
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </header>
+            <div className="content-body">
+              {selectedContent.content}
+            </div>
+          </article>
+        </div>
+        
+        <div className="sidebar">
+          <h3>カテゴリ</h3>
+          <ul className="category-filter">
+            <li>
+              <button 
+                className={selectedCategory === null ? 'active' : ''}
+                onClick={() => { 
+                  setSelectedCategory(null)
+                  handleBackToTimeline()
+                }}
+              >
+                すべて
+              </button>
+            </li>
+            {categories.map(category => (
+              <li key={category}>
+                <button 
+                  className={selectedCategory === category ? 'active' : ''}
+                  onClick={() => { 
+                    setSelectedCategory(category)
+                    handleBackToTimeline()
+                  }}
+                >
+                  {category}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="public-view">
       <div className="main-content">
@@ -722,11 +847,16 @@ function PublicView() {
         {contents.length === 0 ? (
           <p>まだコンテンツがありません。</p>
         ) : (
-          <div className="content-list">
+          <div className="content-timeline">
             {contents.map(content => (
-              <article key={content.id} className="content-article">
+              <article key={content.id} className="timeline-item" onClick={() => handleContentClick(content)}>
                 <h3>{content.title}</h3>
-                <div className="content-body">{content.content}</div>
+                <p className="content-excerpt">
+                  {content.content.length > 100 
+                    ? content.content.substring(0, 100) + '...' 
+                    : content.content
+                  }
+                </p>
                 <div className="content-meta">
                   <span>投稿日: {new Date(content.created_at).toLocaleString()}</span>
                   <div>
