@@ -128,7 +128,7 @@ function ContentForm({ content, onSave, onCancel }) {
         </div>
         <div>
           <div className="content-input-container">
-            <div className="content-header">
+            <div className="editor-header">
               <label>内容:</label>
               <div className="editor-tabs">
                 <button 

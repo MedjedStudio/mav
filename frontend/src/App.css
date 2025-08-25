@@ -17,7 +17,7 @@ body {
   margin: 0;
 }
 
-.content-header {
+.editor-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -151,6 +151,16 @@ body {
   line-height: 1.25;
 }
 
+.markdown-preview h1 {
+  border-bottom: 1px solid #d0d7de;
+  padding-bottom: 10px;
+}
+
+.markdown-preview h2 {
+  border-bottom: 1px solid #d0d7de;
+  padding-bottom: 8px;
+}
+
 .markdown-preview p {
   margin-bottom: 16px;
 }
@@ -164,8 +174,6 @@ body {
 .markdown-preview img {
   max-width: 100%;
   height: auto;
-  display: block;
-  margin: 16px 0;
 }
 
 .app {
@@ -591,8 +599,8 @@ button:disabled {
   margin-bottom: 8px;
 }
 
-/* 内容ヘッダー内のラベルの余白を0に */
-.content-header label {
+/* エディタヘッダー内のラベルの余白を0に */
+.editor-header label {
   margin-bottom: 0;
 }
   font-weight: 600;
