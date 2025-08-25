@@ -23,7 +23,7 @@ async def list_files(current_user: UserModel = Depends(require_admin)):
         files = []
         if UPLOAD_DIR.exists():
             for file_path in UPLOAD_DIR.iterdir():
-                if file_path.is_file():
+                if file_path.is_file() and file_path.name != '.gitkeep':
                     stat = file_path.stat()
                     # 元のファイル名を推測（UUID部分を除去）
                     filename = file_path.name
