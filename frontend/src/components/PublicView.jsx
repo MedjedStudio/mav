@@ -13,7 +13,7 @@ function PublicView({ contentId, setContentId, resetCategory }) {
   const [view, setView] = useState('timeline') // 'timeline' または 'content'
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const itemsPerPage = 5
+  const itemsPerPage = 12
 
   useEffect(() => {
     loadContents()
@@ -198,75 +198,48 @@ function PublicView({ contentId, setContentId, resetCategory }) {
   return (
     <div className="public-view">
       <div className="main-content">
-        <h2>
-          {selectedCategory ? `「${selectedCategory}」の記事` : 'コンテンツ一覧'}
-        </h2>
         {contents.length === 0 ? (
           <p>まだコンテンツがありません。</p>
         ) : (
           <>
-            <div className="content-timeline">
+            <div className="content-grid">
               {contents.map(content => (
-                <article key={content.id} className={`timeline-item ${extractFirstImage(content.content) ? 'has-thumbnail' : 'no-thumbnail'}`} onClick={() => handleContentClick(content)}>
-                  {extractFirstImage(content.content) ? (
-                    <div className="timeline-content">
-                      <div className="timeline-thumbnail">
-                        <img 
-                          src={extractFirstImage(content.content).startsWith('http') 
-                            ? extractFirstImage(content.content) 
-                            : `${API_BASE_URL}${extractFirstImage(content.content)}`} 
-                          alt={content.title} 
-                          className="timeline-thumb-image"
-                          onError={(e) => {
-                            e.target.parentElement.style.display = 'none'
-                          }}
-                        />
-                      </div>
-                      <div className="timeline-text">
-                        <h3>{content.title}</h3>
-                        <p className="content-excerpt">
-                          {(() => {
-                            const contentWithoutImage = removeFirstImage(content.content)
-                            return contentWithoutImage.length > 100 
-                              ? contentWithoutImage.substring(0, 100) + '...' 
-                              : contentWithoutImage
-                          })()}
-                        </p>
-                        <div className="content-meta">
-                          <span>投稿日: {new Date(content.created_at).toLocaleString()}</span>
-                          <div>
-                            {content.categories && content.categories.map(cat => (
-                              <span key={cat} className="content-category" style={{ marginLeft: '8px' }}>
-                                {cat}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="timeline-single-column">
-                      <h3>{content.title}</h3>
-                      <p className="content-excerpt">
-                        {(() => {
-                          const contentWithoutImage = removeFirstImage(content.content)
-                          return contentWithoutImage.length > 100 
-                            ? contentWithoutImage.substring(0, 100) + '...' 
-                            : contentWithoutImage
-                        })()}
-                      </p>
-                      <div className="content-meta">
-                        <span>投稿日: {new Date(content.created_at).toLocaleString()}</span>
-                        <div>
-                          {content.categories && content.categories.map(cat => (
-                            <span key={cat} className="content-category" style={{ marginLeft: '8px' }}>
-                              {cat}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                <article key={content.id} className="content-card" onClick={() => handleContentClick(content)}>
+                  {extractFirstImage(content.content) && (
+                    <div className="card-thumbnail">
+                      <img 
+                        src={extractFirstImage(content.content).startsWith('http') 
+                          ? extractFirstImage(content.content) 
+                          : `${API_BASE_URL}${extractFirstImage(content.content)}`} 
+                        alt={content.title} 
+                        className="card-image"
+                        onError={(e) => {
+                          e.target.parentElement.style.display = 'none'
+                        }}
+                      />
                     </div>
                   )}
+                  <div className="card-content">
+                    <h3 className="card-title">{content.title}</h3>
+                    <p className="card-excerpt">
+                      {(() => {
+                        const contentWithoutImage = removeFirstImage(content.content)
+                        return contentWithoutImage.length > 80 
+                          ? contentWithoutImage.substring(0, 80) + '...' 
+                          : contentWithoutImage
+                      })()}
+                    </p>
+                    <div className="card-meta">
+                      <span className="card-date">{new Date(content.created_at).toLocaleDateString()}</span>
+                      <div className="card-categories">
+                        {content.categories && content.categories.slice(0, 2).map(cat => (
+                          <span key={cat} className="card-category">
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </article>
               ))}
             </div>
