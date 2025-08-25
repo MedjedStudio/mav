@@ -1,0 +1,38 @@
+import React from 'react'
+
+// 管理メニューコンポーネント
+function AdminSidebar({ activeView, onViewChange }) {
+  return (
+    <div className="admin-sidebar">
+      <h2>管理メニュー</h2>
+      <nav className="admin-nav">
+        <button 
+          className={activeView === 'contents' ? 'active' : ''}
+          onClick={() => onViewChange('contents')}
+        >
+          コンテンツ管理
+        </button>
+        <button 
+          className={activeView === 'categories' ? 'active' : ''}
+          onClick={() => onViewChange('categories')}
+        >
+          カテゴリ管理
+        </button>
+        <button 
+          className={activeView === 'files' ? 'active' : ''}
+          onClick={() => onViewChange('files')}
+        >
+          ファイル管理
+        </button>
+        <button 
+          className={activeView === 'profile' ? 'active' : ''}
+          onClick={() => onViewChange('profile')}
+        >
+          プロフィール
+        </button>
+      </nav>
+    </div>
+  )
+}
+
+export default AdminSidebar

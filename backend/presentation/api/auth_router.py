@@ -1,12 +1,15 @@
-from datetime import timedelta
+"""Authentication API endpoints."""
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+
+from config import settings
 from infrastructure.persistence.database import get_db
 from infrastructure.persistence.models import UserModel, UserRole
-from infrastructure.auth import verify_password, create_access_token, verify_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from presentation.schemas.auth_schemas import LoginRequest, SetupRequest, LoginResponse, UserInfo
 from presentation.schemas.user_profile_schemas import UserProfileUpdate, PasswordChange, UserProfile
+from utils.auth_utils import verify_password, create_access_token, verify_token, hash_password
+from utils.response_utils import create_error_response
 
 router = APIRouter()
 security = HTTPBearer()
@@ -18,22 +21,13 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         UserModel.deleted_at.is_(None)
     ).first()
     
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="認証情報が正しくありません"
+    if not user or not verify_password(request.password, user.password_hash):
+        raise create_error_response(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid credentials"
         )
     
-    if not verify_password(request.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="認証情報が正しくありません"
-        )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
+    access_token = create_access_token(data={"sub": user.email})
     
     return LoginResponse(
         access_token=access_token,
@@ -44,12 +38,19 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)) -> UserModel:
     token = credentials.credentials
-    email = verify_token(token)
+    payload = verify_token(token)
     
+    if payload is None:
+        raise create_error_response(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid authentication token"
+        )
+    
+    email = payload.get("sub")
     if email is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="認証トークンが無効です"
+        raise create_error_response(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid token payload"
         )
     
     user = db.query(UserModel).filter(
@@ -57,18 +58,18 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         UserModel.deleted_at.is_(None)
     ).first()
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="ユーザーが見つかりません"
+        raise create_error_response(
+            status.HTTP_401_UNAUTHORIZED,
+            "User not found"
         )
     
     return user
 
 def require_admin(current_user: UserModel = Depends(get_current_user)) -> UserModel:
     if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="管理者権限が必要です"
+        raise create_error_response(
+            status.HTTP_403_FORBIDDEN,
+            "Admin privileges required"
         )
     return current_user
 
@@ -96,9 +97,9 @@ def update_profile(
             UserModel.id != current_user.id
         ).first()
         if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="このメールアドレスは既に使用されています"
+            raise create_error_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Email address is already in use"
             )
         email_changed = True
     
@@ -110,9 +111,9 @@ def update_profile(
             UserModel.id != current_user.id
         ).first()
         if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="このユーザー名は既に使用されています"
+            raise create_error_response(
+                status.HTTP_400_BAD_REQUEST,
+                "Username is already in use"
             )
 
     # プロファイル更新
@@ -133,10 +134,7 @@ def update_profile(
     }
     
     if email_changed:
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": current_user.email}, expires_delta=access_token_expires
-        )
+        access_token = create_access_token(data={"sub": current_user.email})
         response_data["access_token"] = access_token
     
     return response_data
@@ -147,20 +145,18 @@ def change_password(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
 ):
-    from infrastructure.auth import verify_password, get_password_hash
-    
-    # 現在のパスワード確認
+    # Verify current password
     if not verify_password(password_data.current_password, current_user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="現在のパスワードが正しくありません"
+        raise create_error_response(
+            status.HTTP_400_BAD_REQUEST,
+            "Current password is incorrect"
         )
     
-    # 新しいパスワードをハッシュ化して保存
-    current_user.password_hash = get_password_hash(password_data.new_password)
+    # Hash and save new password
+    current_user.password_hash = hash_password(password_data.new_password)
     db.commit()
     
-    return {"message": "パスワードを変更しました"}
+    return {"message": "Password changed successfully"}
 
 @router.get("/setup-status")
 def check_setup_status(db: Session = Depends(get_db)):
@@ -182,12 +178,11 @@ def initial_setup(request: SetupRequest, db: Session = Depends(get_db)):
     ).count()
     
     if admin_count > 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="管理者アカウントは既に存在しています"
+        raise create_error_response(
+            status.HTTP_400_BAD_REQUEST,
+            "Admin account already exists"
         )
     
-    from infrastructure.auth import get_password_hash
     
     # メールアドレスの重複チェック
     existing_user = db.query(UserModel).filter(
@@ -195,16 +190,16 @@ def initial_setup(request: SetupRequest, db: Session = Depends(get_db)):
         UserModel.deleted_at.is_(None)
     ).first()
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="このメールアドレスは既に使用されています"
+        raise create_error_response(
+            status.HTTP_400_BAD_REQUEST,
+            "Email address is already in use"
         )
     
     # 初期管理者ユーザーを作成
     admin_user = UserModel(
         username=request.username,
         email=request.email,
-        password_hash=get_password_hash(request.password),
+        password_hash=hash_password(request.password),
         role=UserRole.ADMIN
     )
     
@@ -212,11 +207,8 @@ def initial_setup(request: SetupRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(admin_user)
     
-    # ログイン用のトークンを生成
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": admin_user.email}, expires_delta=access_token_expires
-    )
+    # Generate login token
+    access_token = create_access_token(data={"sub": admin_user.email})
     
     return LoginResponse(
         access_token=access_token,

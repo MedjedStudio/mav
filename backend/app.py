@@ -5,6 +5,7 @@ from presentation.api.auth_router import router as auth_router
 from presentation.api.content_router import router as content_router
 from presentation.api.category_router import router as category_router
 from presentation.api.upload_router import router as upload_router
+from config import settings
 
 app = FastAPI(title="MAV API", version="1.0.0")
 
@@ -21,6 +22,8 @@ app.include_router(auth_router, prefix="/auth", tags=["認証"])
 app.include_router(content_router, prefix="/contents", tags=["コンテンツ"])
 app.include_router(category_router, prefix="/categories", tags=["カテゴリ"])
 app.include_router(upload_router, prefix="/uploads", tags=["アップロード"])
+
+# Static files are served through upload_router endpoints
 
 if __name__ == "__main__":
     import uvicorn

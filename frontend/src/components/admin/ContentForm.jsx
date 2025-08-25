@@ -1,0 +1,161 @@
+import React, { useState, useEffect } from 'react'
+import axios from 'axios'
+import { API_BASE_URL } from '../../services/api'
+import { getToken } from '../../utils/auth'
+
+// コンテンツフォーム
+function ContentForm({ content, onSave, onCancel }) {
+  const [title, setTitle] = useState(content?.title || '')
+  const [contentText, setContentText] = useState(content?.content || '')
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([])
+  const [availableCategories, setAvailableCategories] = useState([])
+  const [isUploading, setIsUploading] = useState(false)
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
+  useEffect(() => {
+    if (content && content.categories && availableCategories.length > 0) {
+      // 既存コンテンツのカテゴリIDを設定
+      const categoryIds = availableCategories
+        .filter(cat => content.categories.includes(cat.name))
+        .map(cat => cat.id)
+      setSelectedCategoryIds(categoryIds)
+    } else if (!content) {
+      // 新規作成時はカテゴリを選択しない（未分類として扱う）
+      setSelectedCategoryIds([])
+    }
+  }, [content, availableCategories])
+
+  const loadCategories = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/categories/`)
+      setAvailableCategories(response.data)
+    } catch (error) {
+      console.error('カテゴリ取得失敗:', error)
+    }
+  }
+
+  const handleCategoryChange = (categoryId) => {
+    setSelectedCategoryIds(prev => 
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    )
+  }
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const token = getToken()
+      const response = await axios.post(`${API_BASE_URL}/uploads/upload`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      const imageUrl = `${API_BASE_URL}${response.data.url}`
+      const markdownImage = `![${response.data.original_filename}](${imageUrl})`
+      
+      // カーソル位置にマークダウン画像を挿入
+      const textarea = document.querySelector('textarea[name="content"]')
+      if (textarea) {
+        const start = textarea.selectionStart
+        const end = textarea.selectionEnd
+        const newContent = contentText.substring(0, start) + markdownImage + contentText.substring(end)
+        setContentText(newContent)
+        
+        // カーソル位置を調整
+        setTimeout(() => {
+          textarea.focus()
+          textarea.selectionStart = textarea.selectionEnd = start + markdownImage.length
+        }, 0)
+      } else {
+        setContentText(prev => prev + '\n' + markdownImage)
+      }
+    } catch (error) {
+      console.error('画像アップロード失敗:', error)
+      alert('画像のアップロードに失敗しました')
+    } finally {
+      setIsUploading(false)
+      event.target.value = '' // ファイル選択をリセット
+    }
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onSave({ title, content: contentText, category_ids: selectedCategoryIds })
+  }
+
+  return (
+    <div className="content-form">
+      <h3>{content ? 'コンテンツ編集' : '新規コンテンツ作成'}</h3>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>タイトル:</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>カテゴリ:</label>
+          <div className="category-checkboxes">
+            {availableCategories.map(cat => (
+              <div key={cat.id} className="checkbox-item">
+                <input
+                  type="checkbox"
+                  id={`category-${cat.id}`}
+                  checked={selectedCategoryIds.includes(cat.id)}
+                  onChange={() => handleCategoryChange(cat.id)}
+                />
+                <label htmlFor={`category-${cat.id}`}>{cat.name}</label>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label>内容:</label>
+          <div className="content-input-container">
+            <textarea
+              name="content"
+              value={contentText}
+              onChange={(e) => setContentText(e.target.value)}
+              rows={10}
+              required
+            />
+            <div className="image-upload-section">
+              <label className="image-upload-btn" disabled={isUploading}>
+                {isUploading ? '画像アップロード中...' : '画像を挿入'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isUploading}
+                  style={{ display: 'none' }}
+                />
+              </label>
+              <small>JPG, PNG, GIF, WebP対応（最大10MB）</small>
+            </div>
+          </div>
+        </div>
+        <div className="form-buttons">
+          <button type="submit">保存</button>
+          <button type="button" onClick={onCancel}>キャンセル</button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+export default ContentForm
