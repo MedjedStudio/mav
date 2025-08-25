@@ -51,7 +51,7 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       })
       setUser({ username: response.data.username, email: response.data.email, role: response.data.role })
-      setView(response.data.role === 'admin' ? 'admin' : 'public')
+      setView('public')
     } catch (error) {
       console.error('認証確認失敗:', error)
       removeToken()
