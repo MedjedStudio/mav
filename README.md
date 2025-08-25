@@ -1,6 +1,6 @@
 # MAV Application
 
-FastAPI + Reactを使用したフルスタックWebアプリケーションです。excel-apiプロジェクトの構成を参考に作成されています。
+FastAPI + Reactを使用したフルスタックWebアプリケーションです。
 
 ## アーキテクチャ
 
