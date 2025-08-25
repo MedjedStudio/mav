@@ -1108,6 +1108,9 @@ function PublicView({ contentId, setContentId, resetCategory }) {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedContent, setSelectedContent] = useState(null)
   const [view, setView] = useState('timeline') // 'timeline' または 'content'
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 5
 
   useEffect(() => {
     loadContents()
@@ -1117,12 +1120,18 @@ function PublicView({ contentId, setContentId, resetCategory }) {
   useEffect(() => {
     if (resetCategory) {
       setSelectedCategory(null)
+      setCurrentPage(1)
     }
   }, [resetCategory])
 
+  // カテゴリ変更時にページを1に戻す
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedCategory])
+
   useEffect(() => {
     loadContents()
-  }, [selectedCategory])
+  }, [selectedCategory, currentPage])
 
   // URL パラメータで指定されたコンテンツを読み込み
   useEffect(() => {
@@ -1140,7 +1149,23 @@ function PublicView({ contentId, setContentId, resetCategory }) {
         ? `${API_BASE_URL}/contents/?category=${encodeURIComponent(selectedCategory)}`
         : `${API_BASE_URL}/contents/`
       const response = await axios.get(url)
-      setContents(response.data)
+      const allContents = response.data
+      
+      // ページネーション計算
+      const totalItems = allContents.length
+      const pages = Math.ceil(totalItems / itemsPerPage)
+      setTotalPages(pages)
+      
+      // 現在のページが総ページ数を超えている場合は1ページ目に戻る
+      if (currentPage > pages && pages > 0) {
+        setCurrentPage(1)
+        return
+      }
+      
+      // 現在のページの内容を設定
+      const startIndex = (currentPage - 1) * itemsPerPage
+      const endIndex = startIndex + itemsPerPage
+      setContents(allContents.slice(startIndex, endIndex))
     } catch (error) {
       console.error('コンテンツ取得失敗:', error)
     }
@@ -1257,29 +1282,90 @@ function PublicView({ contentId, setContentId, resetCategory }) {
         {contents.length === 0 ? (
           <p>まだコンテンツがありません。</p>
         ) : (
-          <div className="content-timeline">
-            {contents.map(content => (
-              <article key={content.id} className="timeline-item" onClick={() => handleContentClick(content)}>
-                <h3>{content.title}</h3>
-                <p className="content-excerpt">
-                  {content.content.length > 100 
-                    ? content.content.substring(0, 100) + '...' 
-                    : content.content
-                  }
-                </p>
-                <div className="content-meta">
-                  <span>投稿日: {new Date(content.created_at).toLocaleString()}</span>
-                  <div>
-                    {content.categories && content.categories.map(cat => (
-                      <span key={cat} className="content-category" style={{ marginLeft: '8px' }}>
-                        {cat}
-                      </span>
-                    ))}
+          <>
+            <div className="content-timeline">
+              {contents.map(content => (
+                <article key={content.id} className="timeline-item" onClick={() => handleContentClick(content)}>
+                  <h3>{content.title}</h3>
+                  <p className="content-excerpt">
+                    {content.content.length > 100 
+                      ? content.content.substring(0, 100) + '...' 
+                      : content.content
+                    }
+                  </p>
+                  <div className="content-meta">
+                    <span>投稿日: {new Date(content.created_at).toLocaleString()}</span>
+                    <div>
+                      {content.categories && content.categories.map(cat => (
+                        <span key={cat} className="content-category" style={{ marginLeft: '8px' }}>
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+            
+            {/* ページネーション */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  ≪
+                </button>
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  ＜
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                  if (
+                    page === 1 || 
+                    page === totalPages || 
+                    (page >= currentPage - 2 && page <= currentPage + 2)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    )
+                  } else if (
+                    page === currentPage - 3 || 
+                    page === currentPage + 3
+                  ) {
+                    return <span key={page} className="pagination-dots">...</span>
+                  }
+                  return null
+                })}
+                
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  ＞
+                </button>
+                <button 
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  ≫
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
       

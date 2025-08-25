@@ -1220,6 +1220,32 @@ button:disabled {
   .timeline-item h3 {
     font-size: 16px;
   }
+  
+  /* ページネーションのレスポンシブ対応 */
+  .pagination {
+    gap: 3px;
+    margin: 20px 0;
+    padding: 8px 0;
+  }
+  
+  .pagination-btn {
+    min-width: 28px;
+    height: 28px;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+  
+  .pagination-btn:first-child,
+  .pagination-btn:nth-child(2),
+  .pagination-btn:nth-last-child(2),
+  .pagination-btn:last-child {
+    font-size: 12px;
+  }
+  
+  .pagination-dots {
+    padding: 4px 1px;
+    font-size: 11px;
+  }
 }
 
 /* Footer styles */
@@ -1260,6 +1286,96 @@ button:disabled {
 
 .admin-login-link:hover {
   text-decoration: underline;
+}
+
+/* ページネーション */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: 24px 0;
+  padding: 12px 0;
+}
+
+.pagination-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 6px 8px;
+  border: 1px solid #d0d7de;
+  background-color: #ffffff;
+  color: #24292f;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f6f8fa;
+  border-color: #0969da;
+  color: #0969da;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(9, 105, 218, 0.15);
+}
+
+.pagination-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(9, 105, 218, 0.1);
+}
+
+.pagination-btn.active {
+  background-color: #0969da;
+  border-color: #0969da;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(9, 105, 218, 0.2);
+  cursor: default;
+}
+
+.pagination-btn.active:hover {
+  transform: none;
+  background-color: #0969da;
+  border-color: #0969da;
+  color: #ffffff;
+}
+
+.pagination-btn:disabled {
+  background-color: #f6f8fa;
+  color: #8c959f;
+  border-color: #d0d7de;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pagination-btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+  background-color: #f6f8fa;
+  color: #8c959f;
+  border-color: #d0d7de;
+}
+
+.pagination-dots {
+  color: #656d76;
+  font-weight: 500;
+  padding: 6px 2px;
+  line-height: 20px;
+  cursor: default;
+  user-select: none;
+  font-size: 12px;
+}
+
+/* 矢印ボタンのスタイル調整 */
+.pagination-btn:first-child,
+.pagination-btn:nth-child(2),
+.pagination-btn:nth-last-child(2),
+.pagination-btn:last-child {
+  font-weight: 600;
+  font-size: 13px;
 }
 
 /* Responsive footer */
