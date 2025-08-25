@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE_URL } from '../../services/api'
 import { getToken } from '../../utils/auth'
+import ReactMarkdown from 'react-markdown'
 
 // コンテンツフォーム
 function ContentForm({ content, onSave, onCancel }) {
@@ -10,6 +11,7 @@ function ContentForm({ content, onSave, onCancel }) {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([])
   const [availableCategories, setAvailableCategories] = useState([])
   const [isUploading, setIsUploading] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => {
     loadCategories()
@@ -125,15 +127,42 @@ function ContentForm({ content, onSave, onCancel }) {
           </div>
         </div>
         <div>
-          <label>内容:</label>
           <div className="content-input-container">
-            <textarea
-              name="content"
-              value={contentText}
-              onChange={(e) => setContentText(e.target.value)}
-              rows={10}
-              required
-            />
+            <div className="content-header">
+              <label>内容:</label>
+              <div className="editor-tabs">
+                <button 
+                  type="button" 
+                  onClick={() => setShowPreview(false)}
+                  className={`tab-btn ${!showPreview ? 'active' : ''}`}
+                >
+                  エディタ
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setShowPreview(true)}
+                  className={`tab-btn ${showPreview ? 'active' : ''}`}
+                >
+                  プレビュー
+                </button>
+              </div>
+            </div>
+            <div className="editor-container">
+              {!showPreview ? (
+                <textarea
+                  name="content"
+                  value={contentText}
+                  onChange={(e) => setContentText(e.target.value)}
+                  rows={15}
+                  required
+                  placeholder="マークダウン形式で入力してください..."
+                />
+              ) : (
+                <div className="markdown-preview">
+                  <ReactMarkdown>{contentText || '内容を入力してください...'}</ReactMarkdown>
+                </div>
+              )}
+            </div>
             <div className="image-upload-section">
               <label className="image-upload-btn" disabled={isUploading}>
                 {isUploading ? '画像アップロード中...' : '画像を挿入'}

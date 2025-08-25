@@ -12,6 +12,160 @@ body {
   background-color: #ffffff;
 }
 
+/* Custom Markdown Editor styles */
+.content-input-container {
+  margin: 0;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.editor-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab-btn {
+  padding: 4px 8px;
+  background-color: #f6f8fa;
+  color: #24292f;
+  border: 1px solid #d0d7de;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.tab-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.tab-btn.active {
+  background-color: #0969da;
+  color: #ffffff;
+  border-color: #0969da;
+}
+
+.image-upload-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+.image-upload-btn {
+  padding: 6px 12px;
+  background-color: #0969da;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.image-upload-btn:hover {
+  background-color: #0860ca;
+}
+
+.image-upload-btn[disabled] {
+  background-color: #8c959f;
+  cursor: not-allowed;
+}
+
+
+.image-upload-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+.image-upload-btn {
+  padding: 6px 12px;
+  background-color: #0969da;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.image-upload-btn:hover {
+  background-color: #0860ca;
+}
+
+.image-upload-btn[disabled] {
+  background-color: #8c959f;
+  cursor: not-allowed;
+}
+
+.editor-container textarea {
+  width: 100%;
+  height: 300px;
+  padding: 16px;
+  border: 1px solid #d0d7de;
+  border-radius: 0;
+  resize: vertical;
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: #ffffff;
+  color: #24292f;
+  box-sizing: border-box;
+  display: block;
+  margin: 0;
+}
+
+.editor-container textarea:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px #0969da;
+}
+
+.markdown-preview {
+  padding: 16px;
+  min-height: 300px;
+  background-color: #ffffff;
+  color: #24292f;
+  border: 1px solid #d0d7de;
+  border-radius: 0;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-preview p {
+  margin-bottom: 16px;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  padding-left: 32px;
+  margin-bottom: 16px;
+}
+
+.markdown-preview img {
+  max-width: 100%;
+  height: auto;
+}
+
 .app {
   min-height: 100vh;
   display: flex;
@@ -413,12 +567,32 @@ button:disabled {
 }
 
 .content-form div {
-  margin-bottom: 16px;
+  margin-bottom: 0;
+}
+
+/* タイトルとカテゴリの間 */
+.content-form div:has(input[type="text"]) {
+  margin-bottom: 48px;
+}
+
+/* カテゴリと内容の間 */
+.content-form div:has(.category-checkboxes) {
+  margin-bottom: 48px;
+}
+
+.content-form div:has(.content-input-container) {
+  margin-bottom: 20px;
 }
 
 .content-form label {
   display: block;
   margin-bottom: 8px;
+}
+
+/* 内容ヘッダー内のラベルの余白を0に */
+.content-header label {
+  margin-bottom: 0;
+}
   font-weight: 600;
   font-size: 14px;
   color: #24292f;
