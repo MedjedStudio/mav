@@ -1,4 +1,38 @@
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: mav-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: mav_db
+      MYSQL_USER: mav_user
+      MYSQL_PASSWORD: mav_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - mav-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  migrate:
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=mysql+pymysql://mav_user:mav_password@mysql:3306/mav_db
+    networks:
+      - mav-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["./migrate.sh"]
+
   backend:
     build:
       context: ./backend
@@ -6,11 +40,16 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - backend_output:/app/output
     environment:
       - DEBUG=true
+      - DATABASE_URL=mysql+pymysql://mav_user:mav_password@mysql:3306/mav_db
     networks:
       - mav-network
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mysql:
+        condition: service_healthy
 
   frontend:
     build:
@@ -28,7 +67,7 @@ services:
       - mav-network
 
 volumes:
-  backend_output:
+  mysql_data:
 
 networks:
   mav-network:

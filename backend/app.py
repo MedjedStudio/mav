@@ -1,9 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from services.convert import convert_handler
-from services.status import status_handler
-import json
+from presentation.api import user_router
 
 app = FastAPI(title="MAV API", version="1.0.0")
 
@@ -15,24 +12,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class ConvertRequest(BaseModel):
-    url: str
-
-@app.post("/convert")
-async def convert(request: ConvertRequest):
-    try:
-        result = convert_handler({"url": request.url})
-        return json.loads(result["body"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/status")
-async def status():
-    try:
-        result = status_handler({})
-        return json.loads(result["body"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+app.include_router(user_router)
 
 if __name__ == "__main__":
     import uvicorn
