@@ -25,7 +25,8 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - DATABASE_URL=mysql+pymysql://mav_user:mav_password@mysql:3306/mav_db
+      - DATABASE_URL=mysql+pymysql://mav_user:mav_password@mysql:3306/mav_db?ssl_disabled=true
+      - MYSQL_PWD=mav_password
     networks:
       - mav-network
     depends_on:
