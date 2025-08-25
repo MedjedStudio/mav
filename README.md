@@ -82,21 +82,21 @@ cp .env.example .env
 # バックエンド設定
 BACKEND_PORT=8000
 DEBUG=true
-JWT_SECRET_KEY=your-very-secure-secret-key-change-this-in-production-12345
+JWT_SECRET_KEY=change-this-to-a-secure-secret-key
 
 # データベース設定
-MYSQL_ROOT_PASSWORD=rootpassword
+MYSQL_ROOT_PASSWORD=change-this-password
 MYSQL_USER=mav_user
-MYSQL_PASSWORD=mav_password
+MYSQL_PASSWORD=change-this-password
 MYSQL_DATABASE=mav_db
 
 # フロントエンド設定
 FRONTEND_PORT=3000
-VITE_API_URL=http://192.168.1.6:8000
+VITE_API_URL=http://localhost:8000
 ```
 
 注意：
-- `JWT_SECRET_KEY`は本番環境では必ず変更してください
+- `JWT_SECRET_KEY`、`MYSQL_ROOT_PASSWORD`、`MYSQL_PASSWORD`は実際の環境に合わせて変更してください
 - `VITE_API_URL`は実際のサーバーIPアドレスに合わせて変更してください
 
 ### 2. 環境構築
