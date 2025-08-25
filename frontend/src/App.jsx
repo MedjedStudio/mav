@@ -13,10 +13,11 @@ const removeToken = () => localStorage.removeItem('token')
 function App() {
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [view, setView] = useState('public') // 'public', 'login', 'admin', 'setup'
+  const [view, setView] = useState('public') // 'public', 'admin', 'setup'
   const [contentId, setContentId] = useState(null) // URL パラメータから取得するコンテンツID
   const [needsSetup, setNeedsSetup] = useState(false)
-  const [resetCategoryTrigger, setResetCategoryTrigger] = useState(0) // 初期セットアップが必要かどうか
+  const [resetCategoryTrigger, setResetCategoryTrigger] = useState(0)
+  const [showLoginModal, setShowLoginModal] = useState(false) // 初期セットアップが必要かどうか
   
   // URLパスを処理
   useEffect(() => {
@@ -70,6 +71,7 @@ function App() {
       const { access_token, username: userName, role } = response.data
       setToken(access_token)
       setUser({ username: userName, email: email, role })
+      setShowLoginModal(false)
       setView(role === 'admin' ? 'admin' : 'public')
       return true
     } catch (error) {
@@ -141,9 +143,6 @@ function App() {
           <SetupForm onSetup={handleSetup} />
         )}
         
-        {view === 'login' && (
-          <LoginForm onLogin={handleLogin} onCancel={() => setView('public')} />
-        )}
         
         {view === 'admin' && user?.role === 'admin' && (
           <AdminPanel user={user} onUpdate={setUser} />
@@ -159,11 +158,19 @@ function App() {
       </main>
       
       <Footer 
-        onLogin={() => setView('login')} 
+        onLogin={() => setShowLoginModal(true)} 
         needsSetup={needsSetup}
         user={user}
         onAdminClick={() => setView('admin')}
       />
+      
+      {/* ログインモーダル */}
+      {showLoginModal && (
+        <LoginForm 
+          onLogin={handleLogin} 
+          onCancel={() => setShowLoginModal(false)} 
+        />
+      )}
     </div>
   )
 }
@@ -233,35 +240,40 @@ function LoginForm({ onLogin, onCancel }) {
   }
 
   return (
-    <div className="login-form">
-      <h2>管理者ログイン</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>メールアドレス:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="login-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="login-modal-header">
+          <h2>管理者ログイン</h2>
+          <button className="close-btn" onClick={onCancel}>×</button>
         </div>
-        <div>
-          <label>パスワード:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        {error && <div className="error">{error}</div>}
-        <div className="form-buttons">
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? 'ログイン中...' : 'ログイン'}
-          </button>
-          <button type="button" onClick={onCancel}>キャンセル</button>
-        </div>
-      </form>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label>メールアドレス:</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label>パスワード:</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          {error && <div className="error">{error}</div>}
+          <div className="form-buttons">
+            <button type="submit" disabled={isLoading}>
+              {isLoading ? 'ログイン中...' : 'ログイン'}
+            </button>
+            <button type="button" onClick={onCancel}>キャンセル</button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
