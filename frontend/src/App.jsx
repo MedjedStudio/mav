@@ -558,16 +558,35 @@ function AdminPanel({ user, onUpdate }) {
                   新規カテゴリ作成
                 </button>
               </div>
-              {categories.map(category => (
-                <div key={category.id} className="content-item">
-                  <h4>{category.name}</h4>
-                  <p>{category.description || '説明なし'}</p>
-                  <div className="content-actions">
-                    <button onClick={() => setEditingCategory(category)}>編集</button>
-                    <button onClick={() => showCategoryDeleteConfirm(category.id, category.name)}>削除</button>
-                  </div>
-                </div>
-              ))}
+              <table className="admin-content-table">
+                <thead>
+                  <tr>
+                    <th>カテゴリ名</th>
+                    <th>説明</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.map(category => (
+                    <tr key={category.id}>
+                      <td>
+                        <div className="content-title">{category.name}</div>
+                      </td>
+                      <td>
+                        <div className="content-excerpt">
+                          {category.description || '説明なし'}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="content-actions">
+                          <button onClick={() => setEditingCategory(category)}>編集</button>
+                          <button onClick={() => showCategoryDeleteConfirm(category.id, category.name)}>削除</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )
         ) : (showForm || editingContent) ? (
