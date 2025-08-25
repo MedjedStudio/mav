@@ -155,6 +155,9 @@ sudo docker compose logs frontend
 sudo docker compose restart backend
 sudo docker compose restart frontend
 
+# コード修正後の再起動（リビルド）
+sudo docker compose down && sudo docker compose up --build
+
 # 停止
 sudo docker compose down
 
