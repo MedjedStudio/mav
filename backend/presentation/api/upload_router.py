@@ -25,12 +25,9 @@ async def list_files(current_user: UserModel = Depends(require_admin)):
             for file_path in UPLOAD_DIR.iterdir():
                 if file_path.is_file() and file_path.name != '.gitkeep':
                     stat = file_path.stat()
-                    # 元のファイル名を推測（UUID部分を除去）
                     filename = file_path.name
                     if "_" in filename:
-                        # UUID_元ファイル名.拡張子 の形式から元ファイル名を抽出
                         original_name_part = filename.split("_", 1)[1] if "_" in filename else filename
-                        # URLデコードして元のファイル名を取得
                         import urllib.parse
                         try:
                             original_filename = urllib.parse.unquote(original_name_part)
@@ -80,14 +77,12 @@ async def upload_image(
             detail=f"ファイルサイズが大きすぎます。最大サイズ: {MAX_FILE_SIZE / (1024 * 1024):.1f}MB"
         )
     
-    # ユニークなファイル名を生成（元ファイル名を保持）
     import urllib.parse
     safe_original_name = urllib.parse.quote(Path(file.filename).stem, safe='')
     unique_filename = f"{uuid.uuid4()}_{safe_original_name}{file_ext}"
     file_path = UPLOAD_DIR / unique_filename
     
     try:
-        # ファイルを保存
         with open(file_path, "wb") as buffer:
             buffer.write(content)
         
@@ -99,7 +94,6 @@ async def upload_image(
         }
     
     except Exception as e:
-        # ファイル保存に失敗した場合、物理ファイルも削除
         if file_path.exists():
             os.remove(file_path)
         raise HTTPException(status_code=500, detail=f"ファイル保存に失敗しました: {str(e)}")
@@ -109,14 +103,10 @@ async def get_image(filename: str):
     """アップロードされた画像を取得"""
     import urllib.parse
     
-    # ディレクトリトラバーサル攻撃を防ぐ
     if ".." in filename:
         raise HTTPException(status_code=400, detail="不正なファイル名です")
     
-    # まず、ファイル名をそのまま試す
     file_path = UPLOAD_DIR / filename
-    
-    # ファイルが存在しない場合、URLデコードを試す
     if not file_path.exists():
         try:
             decoded_filename = urllib.parse.unquote(filename)
