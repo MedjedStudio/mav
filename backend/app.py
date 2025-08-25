@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from presentation.api import user_router
+from presentation.api.auth_router import router as auth_router
+from presentation.api.content_router import router as content_router
 
-app = FastAPI(title="MAV API", version="1.0.0")
+app = FastAPI(title="MAV CMS API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,6 +15,8 @@ app.add_middleware(
 )
 
 app.include_router(user_router)
+app.include_router(auth_router, prefix="/auth", tags=["認証"])
+app.include_router(content_router, prefix="/contents", tags=["コンテンツ"])
 
 if __name__ == "__main__":
     import uvicorn

@@ -201,13 +201,16 @@ curl -X GET "http://localhost:8000/users"
 
 ### MySQLデータベースアクセス
 
+**開発者用MySQLログインコマンド:**
 ```bash
-# MySQLコンテナに接続
 sudo docker compose exec mysql mysql -u mav_user -pmav_password mav_db
+```
 
+```bash
 # データベース確認
 SHOW TABLES;
 SELECT * FROM users;
+SELECT * FROM contents;
 SELECT * FROM alembic_version;
 ```
 
@@ -301,8 +304,11 @@ sudo docker compose up --build
 5. **ORM**: SQLAlchemyでデータベース操作を抽象化
 6. **マイグレーション管理**: Alembicによるスキーマ変更の履歴管理
 7. **自動マイグレーション**: Docker Compose起動時にマイグレーションを自動実行
-8. **初期データ**: マイグレーションファイルでサンプルユーザーを自動挿入
+8. **初期データ**: マイグレーションファイルで管理者ユーザーを自動作成
 9. **ロールバック対応**: データベーススキーマの巻き戻し機能
+10. **論理削除**: deleted_atカラムによる論理削除機能
+11. **JWT認証**: パスワードハッシュ化とトークンベース認証
+12. **メール認証**: ユーザー名ではなくメールアドレスでログイン
 
 ## 本番環境への展開
 
