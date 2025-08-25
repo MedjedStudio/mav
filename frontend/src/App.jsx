@@ -655,7 +655,7 @@ function AdminPanel({ user, onUpdate }) {
                               alt="サムネイル" 
                               className="admin-thumb-image"
                               onError={(e) => {
-                                e.target.style.display = 'none'
+                                e.target.parentElement.style.display = 'none'
                               }}
                             />
                           </div>
@@ -1505,7 +1505,26 @@ function PublicView({ contentId, setContentId, resetCategory }) {
               </div>
             </header>
             <div className="content-body">
-              <ReactMarkdown>{selectedContent.content}</ReactMarkdown>
+              <ReactMarkdown
+                components={{
+                  img: ({node, ...props}) => (
+                    <img 
+                      {...props} 
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                      }}
+                      style={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        borderRadius: '6px',
+                        margin: '16px 0'
+                      }}
+                    />
+                  )
+                }}
+              >
+                {selectedContent.content}
+              </ReactMarkdown>
             </div>
           </article>
         </div>
@@ -1566,7 +1585,7 @@ function PublicView({ contentId, setContentId, resetCategory }) {
                           alt={content.title} 
                           className="timeline-thumb-image"
                           onError={(e) => {
-                            e.target.style.display = 'none'
+                            e.target.parentElement.style.display = 'none'
                           }}
                         />
                       </div>
