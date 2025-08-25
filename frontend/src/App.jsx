@@ -14,7 +14,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [view, setView] = useState('public') // 'public', 'login', 'admin', 'setup'
   const [contentId, setContentId] = useState(null) // URL パラメータから取得するコンテンツID
-  const [needsSetup, setNeedsSetup] = useState(false) // 初期セットアップが必要かどうか
+  const [needsSetup, setNeedsSetup] = useState(false)
+  const [resetCategoryTrigger, setResetCategoryTrigger] = useState(0) // 初期セットアップが必要かどうか
   
   // URLパスを処理
   useEffect(() => {
@@ -118,6 +119,7 @@ function App() {
     setView('public')
     setContentId(null)
     updateUrl(null)
+    setResetCategoryTrigger(prev => prev + 1) // カテゴリリセットをトリガー
   }
 
   const updateUrl = (id) => {
@@ -151,7 +153,7 @@ function App() {
         )}
         
         {(view === 'public' || (user?.role !== 'admin')) && view !== 'profile' && view !== 'setup' && !needsSetup && (
-          <PublicView contentId={contentId} setContentId={setContentId} />
+          <PublicView contentId={contentId} setContentId={setContentId} resetCategory={resetCategoryTrigger} />
         )}
       </main>
       
@@ -1099,7 +1101,7 @@ function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }) {
 }
 
 // 公開ビュー
-function PublicView({ contentId, setContentId }) {
+function PublicView({ contentId, setContentId, resetCategory }) {
   const [contents, setContents] = useState([])
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -1110,6 +1112,12 @@ function PublicView({ contentId, setContentId }) {
     loadContents()
     loadCategories()
   }, [])
+
+  useEffect(() => {
+    if (resetCategory) {
+      setSelectedCategory(null)
+    }
+  }, [resetCategory])
 
   useEffect(() => {
     loadContents()
