@@ -45,6 +45,17 @@ body {
   margin: 0;
 }
 
+.header-title {
+  cursor: pointer;
+  color: #24292f;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.header-title:hover {
+  color: #2d8659;
+}
+
 .auth-section {
   display: flex;
   align-items: center;

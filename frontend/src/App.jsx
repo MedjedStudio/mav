@@ -114,13 +114,24 @@ function App() {
     setView('public')
   }
 
+  const handleHomeClick = () => {
+    setView('public')
+    setContentId(null)
+    updateUrl(null)
+  }
+
+  const updateUrl = (id) => {
+    const url = id ? `/content/${id}` : '/'
+    window.history.pushState({}, '', url)
+  }
+
   if (isLoading) {
     return <div className="loading">読み込み中...</div>
   }
 
   return (
     <div className="app">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout} onHomeClick={handleHomeClick} />
       
       <main className="main-content">
         {view === 'setup' && (
@@ -139,18 +150,23 @@ function App() {
           <ProfileEdit user={user} onUpdate={setUser} onCancel={() => setView(user?.role === 'admin' ? 'admin' : 'public')} />
         )}
         
-        {(view === 'public' || (user?.role !== 'admin')) && view !== 'profile' && (
+        {(view === 'public' || (user?.role !== 'admin')) && view !== 'profile' && view !== 'setup' && !needsSetup && (
           <PublicView contentId={contentId} setContentId={setContentId} />
         )}
       </main>
       
-      <Footer onLogin={() => setView('login')} />
+      <Footer 
+        onLogin={() => setView('login')} 
+        needsSetup={needsSetup}
+        user={user}
+        onAdminClick={() => setView('admin')}
+      />
     </div>
   )
 }
 
 // ヘッダーコンポーネント
-function Header({ user, onLogout }) {
+function Header({ user, onLogout, onHomeClick }) {
   const [showDropdown, setShowDropdown] = useState(false)
   
   useEffect(() => {
@@ -169,7 +185,7 @@ function Header({ user, onLogout }) {
   return (
     <header className="header">
       <div className="header-container">
-        <h1>MAV</h1>
+        <h1 className="header-title" onClick={onHomeClick}>MAV</h1>
         <div className="auth-section">
           {user && (
             <div className="user-menu">
@@ -1286,15 +1302,27 @@ function PublicView({ contentId, setContentId }) {
 }
 
 // フッターコンポーネント
-function Footer({ onLogin }) {
+function Footer({ onLogin, needsSetup, user, onAdminClick }) {
+  const handleAdminClick = () => {
+    if (user) {
+      // 既にログイン済みの場合はAdmin画面に移動
+      onAdminClick()
+    } else {
+      // 未ログインの場合はログイン画面に移動
+      onLogin()
+    }
+  }
+
   return (
     <footer className="footer">
       <div className="footer-container">
         <div className="footer-content">
           <p>&copy; 2025 Medjed Studio. All rights reserved.</p>
-          <button onClick={onLogin} className="admin-login-link">
-            Admin
-          </button>
+          {!needsSetup && (
+            <button onClick={handleAdminClick} className="admin-login-link">
+              Admin
+            </button>
+          )}
         </div>
       </div>
     </footer>
