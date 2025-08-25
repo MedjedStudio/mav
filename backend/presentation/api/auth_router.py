@@ -6,6 +6,7 @@ from infrastructure.persistence.database import get_db
 from infrastructure.persistence.models import UserModel, UserRole
 from infrastructure.auth import verify_password, create_access_token, verify_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from presentation.schemas.auth_schemas import LoginRequest, LoginResponse, UserInfo
+from presentation.schemas.user_profile_schemas import UserProfileUpdate, PasswordChange, UserProfile
 
 router = APIRouter()
 security = HTTPBearer()
@@ -79,3 +80,72 @@ def get_me(current_user: UserModel = Depends(get_current_user)):
         email=current_user.email,
         role=current_user.role.value
     )
+
+@router.put("/profile", response_model=UserProfile)
+def update_profile(
+    profile_data: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    # メールアドレスの重複チェック
+    if profile_data.email and profile_data.email != current_user.email:
+        existing_user = db.query(UserModel).filter(
+            UserModel.email == profile_data.email,
+            UserModel.deleted_at.is_(None),
+            UserModel.id != current_user.id
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="このメールアドレスは既に使用されています"
+            )
+    
+    # ユーザー名の重複チェック
+    if profile_data.username and profile_data.username != current_user.username:
+        existing_user = db.query(UserModel).filter(
+            UserModel.username == profile_data.username,
+            UserModel.deleted_at.is_(None),
+            UserModel.id != current_user.id
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="このユーザー名は既に使用されています"
+            )
+
+    # プロファイル更新
+    if profile_data.username is not None:
+        current_user.username = profile_data.username
+    if profile_data.email is not None:
+        current_user.email = profile_data.email
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return UserProfile(
+        id=current_user.id,
+        username=current_user.username,
+        email=current_user.email,
+        role=current_user.role.value
+    )
+
+@router.put("/password")
+def change_password(
+    password_data: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    from infrastructure.auth import verify_password, get_password_hash
+    
+    # 現在のパスワード確認
+    if not verify_password(password_data.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="現在のパスワードが正しくありません"
+        )
+    
+    # 新しいパスワードをハッシュ化して保存
+    current_user.password_hash = get_password_hash(password_data.new_password)
+    db.commit()
+    
+    return {"message": "パスワードを変更しました"}

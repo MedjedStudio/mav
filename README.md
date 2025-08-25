@@ -129,10 +129,10 @@ cd ..
 
 ```bash
 # 全体を起動（初回はビルドも実行）
-sudo docker compose up --build
+sudo docker compose up --build -d
 
-# バックグラウンドで起動
-sudo docker compose up -d --build
+# マイグレーション実行（初回 or スキーマ変更時）
+sudo docker compose run --rm migrate
 ```
 
 ### 3. アクセス
@@ -156,7 +156,7 @@ sudo docker compose restart backend
 sudo docker compose restart frontend
 
 # コード修正後の再起動（リビルド）
-sudo docker compose down && sudo docker compose up --build
+sudo docker compose down && sudo docker compose up --build -d
 
 # 停止
 sudo docker compose down
@@ -292,7 +292,7 @@ npm install
 cd ..
 
 # 再ビルド
-sudo docker compose up --build
+sudo docker compose up --build -d
 ```
 
 ## 開発のポイント

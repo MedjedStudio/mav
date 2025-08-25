@@ -67,7 +67,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header user={user} onLogin={() => setView('login')} onLogout={handleLogout} />
+      <Header user={user} onLogin={() => setView('login')} onLogout={handleLogout} onProfile={() => setView('profile')} />
       
       {view === 'login' && (
         <LoginForm onLogin={handleLogin} onCancel={() => setView('public')} />
@@ -77,7 +77,11 @@ function App() {
         <AdminPanel />
       )}
       
-      {(view === 'public' || (user?.role !== 'admin')) && (
+      {view === 'profile' && user && (
+        <ProfileEdit user={user} onUpdate={setUser} onCancel={() => setView(user?.role === 'admin' ? 'admin' : 'public')} />
+      )}
+      
+      {(view === 'public' || (user?.role !== 'admin')) && view !== 'profile' && (
         <PublicView />
       )}
     </div>
@@ -85,7 +89,7 @@ function App() {
 }
 
 // ヘッダーコンポーネント
-function Header({ user, onLogin, onLogout }) {
+function Header({ user, onLogin, onLogout, onProfile }) {
   return (
     <header className="header">
       <h1>MAV CMS</h1>
@@ -94,6 +98,7 @@ function Header({ user, onLogin, onLogout }) {
           <div>
             <span>ようこそ、{user.username}さん</span>
             {user.role === 'admin' && <span className="admin-badge">管理者</span>}
+            <button onClick={onProfile}>プロファイル</button>
             <button onClick={onLogout}>ログアウト</button>
           </div>
         ) : (
@@ -280,6 +285,161 @@ function ContentForm({ content, onSave, onCancel }) {
           <button type="button" onClick={onCancel}>キャンセル</button>
         </div>
       </form>
+    </div>
+  )
+}
+
+// プロファイル編集
+function ProfileEdit({ user, onUpdate, onCancel }) {
+  const [username, setUsername] = useState(user.username)
+  const [email, setEmail] = useState(user.email)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const token = getToken()
+      const response = await axios.put(`${API_BASE_URL}/auth/profile`, {
+        username: username !== user.username ? username : undefined,
+        email: email !== user.email ? email : undefined
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      onUpdate({ ...user, username: response.data.username, email: response.data.email })
+      setMessage('プロファイルを更新しました')
+    } catch (error) {
+      console.error('プロファイル更新失敗:', error)
+      setError(error.response?.data?.detail || 'プロファイル更新に失敗しました')
+    }
+    setIsLoading(false)
+  }
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      setError('新しいパスワードが一致しません')
+      return
+    }
+    if (newPassword.length < 6) {
+      setError('パスワードは6文字以上で入力してください')
+      return
+    }
+
+    setIsLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const token = getToken()
+      await axios.put(`${API_BASE_URL}/auth/password`, {
+        current_password: currentPassword,
+        new_password: newPassword
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      setMessage('パスワードを変更しました')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error) {
+      console.error('パスワード変更失敗:', error)
+      setError(error.response?.data?.detail || 'パスワード変更に失敗しました')
+    }
+    setIsLoading(false)
+  }
+
+  return (
+    <div className="profile-edit">
+      <h2>プロファイル編集</h2>
+      
+      {message && <div className="success">{message}</div>}
+      {error && <div className="error">{error}</div>}
+
+      <div className="profile-forms">
+        <div className="profile-form">
+          <h3>基本情報</h3>
+          <form onSubmit={handleProfileUpdate}>
+            <div>
+              <label>ユーザー名:</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label>メールアドレス:</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-buttons">
+              <button type="submit" disabled={isLoading}>
+                {isLoading ? '更新中...' : 'プロファイル更新'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className="profile-form">
+          <h3>パスワード変更</h3>
+          <form onSubmit={handlePasswordChange}>
+            <div>
+              <label>現在のパスワード:</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label>新しいパスワード:</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </div>
+            <div>
+              <label>新しいパスワード（確認）:</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </div>
+            <div className="form-buttons">
+              <button type="submit" disabled={isLoading}>
+                {isLoading ? '変更中...' : 'パスワード変更'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div className="form-buttons">
+        <button type="button" onClick={onCancel}>戻る</button>
+      </div>
     </div>
   )
 }
