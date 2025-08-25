@@ -41,6 +41,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - ${PWD}/uploads:/app/uploads
     environment:
       - DEBUG=true
       - DATABASE_URL=mysql+pymysql://mav_user:mav_password@mysql:3306/mav_db

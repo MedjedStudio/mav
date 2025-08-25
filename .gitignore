@@ -66,3 +66,7 @@ alembic/versions/*
 
 # Application specific
 backend/output/
+
+# Uploaded files
+uploads/*
+!uploads/.gitkeep

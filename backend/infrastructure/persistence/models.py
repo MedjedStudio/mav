@@ -59,3 +59,18 @@ class ContentModel(Base):
 
     # リレーション（多対多）
     categories = relationship("CategoryModel", secondary=content_categories, back_populates="contents")
+
+class FileModel(Base):
+    __tablename__ = "files"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    mime_type = Column(String(100), nullable=False)
+    uploaded_by = Column(Integer, ForeignKey('users.id'), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+    # リレーション
+    uploader = relationship("UserModel")

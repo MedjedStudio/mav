@@ -594,6 +594,78 @@ button:disabled {
   background-color: #a40e26;
 }
 
+/* Legacy content thumbnail styles (kept for compatibility) */
+.content-thumbnail {
+  width: 80px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f6f8fa;
+  border-radius: 4px;
+  border: 1px solid #d0d7de;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Admin title cell with thumbnail */
+.admin-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-thumbnail {
+  flex-shrink: 0;
+  width: 60px;
+  height: 45px;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+}
+
+.admin-thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-content-table th:first-child,
+.admin-content-table td:first-child {
+  width: 250px;
+}
+
+.admin-content-table th:nth-child(2),
+.admin-content-table td:nth-child(2) {
+  width: 300px;
+}
+
+.admin-title-cell .content-title {
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word;
+}
+
+.thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+.thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #656d76;
+  text-align: center;
+  background-color: #f6f8fa;
+}
+
 /* レガシーサポート用（プロフィール編集などで使用） */
 .content-item {
   background: #ffffff;
@@ -707,7 +779,175 @@ button:disabled {
   background-color: #a40e26;
 }
 
+/* File management styles */
+.file-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.file-preview-image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+  background-color: #f6f8fa;
+}
+
+.file-preview-placeholder {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  color: #656d76;
+  font-size: 24px;
+  text-align: center;
+}
+
+/* File management table adjustments */
+.file-management table td {
+  vertical-align: middle;
+  padding: 12px 8px;
+}
+
+.file-management table tr {
+  height: auto;
+  min-height: 120px;
+}
+
+/* File info styling */
+.file-info {
+  max-width: 200px;
+}
+
+.original-filename {
+  font-weight: 600;
+  color: #24292f;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.filename {
+  color: #656d76;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* File management table column widths */
+.file-management table th:nth-child(1),
+.file-management table td:nth-child(1) {
+  width: 120px;
+  text-align: center;
+}
+
+.file-management table th:nth-child(2),
+.file-management table td:nth-child(2) {
+  width: 200px;
+}
+
+.file-management table th:nth-child(3),
+.file-management table td:nth-child(3) {
+  width: 80px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.file-management table th:nth-child(4),
+.file-management table td:nth-child(4) {
+  width: 100px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.file-management table th:nth-child(5),
+.file-management table td:nth-child(5) {
+  width: 120px;
+  text-align: center;
+}
+
+.file-management table th:nth-child(6),
+.file-management table td:nth-child(6) {
+  width: 120px;
+  text-align: center;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+.modal-title {
+  margin: 0 0 16px 0;
+  color: #24292f;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.modal-message {
+  margin: 0 0 24px 0;
+  color: #656d76;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.modal-button {
+  background-color: #1f883d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.modal-button:hover {
+  background-color: #1a7f37;
+}
+
 @keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideIn {
   from {
     opacity: 0;
     transform: scale(0.9) translateY(-20px);
@@ -735,10 +975,10 @@ button:disabled {
 
 .timeline-item {
   background: #ffffff;
-  padding: 20px;
-  border-radius: 4px;
+  padding: 24px;
+  border-radius: 6px;
   border: 1px solid #d0d7de;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -748,12 +988,78 @@ button:disabled {
   box-shadow: 0 2px 8px rgba(45,134,89,0.1);
 }
 
+.timeline-content {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.timeline-single-column {
+  display: block;
+}
+
+.timeline-thumbnail {
+  flex-shrink: 0;
+  width: 160px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.timeline-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+}
+
 .timeline-item h3 {
   margin-bottom: 12px;
   color: #24292f;
   font-size: 18px;
   font-weight: 600;
   line-height: 1.25;
+}
+
+.timeline-text h3 {
+  margin-bottom: 8px;
+}
+
+.timeline-text .content-excerpt {
+  margin-bottom: auto;
+  line-height: 1.5;
+  color: #656d76;
+  flex-grow: 1;
+}
+
+.timeline-text .content-meta {
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+.timeline-single-column h3 {
+  margin-bottom: 12px;
+  color: #24292f;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.timeline-single-column .content-excerpt {
+  margin-bottom: 12px;
+  line-height: 1.5;
+  color: #656d76;
 }
 
 .content-excerpt {
@@ -1313,6 +1619,28 @@ button:disabled {
     font-size: 16px;
   }
   
+  .timeline-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .timeline-thumbnail {
+    width: 100%;
+    height: 200px;
+    align-self: center;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .timeline-text {
+    min-height: auto;
+    justify-content: flex-start;
+  }
+  
+  .timeline-single-column h3 {
+    font-size: 16px;
+  }
+  
   /* ページネーションのレスポンシブ対応 */
   .pagination {
     gap: 3px;
@@ -1581,6 +1909,132 @@ button:disabled {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
+}
+
+/* 画像アップロード機能 */
+.content-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.content-input-container textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.content-input-container textarea:focus {
+  outline: none;
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+.image-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.image-upload-btn {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  color: #24292f;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.image-upload-btn:hover:not([disabled]) {
+  background-color: #eaeef2;
+  border-color: #c7cbd1;
+}
+
+.image-upload-btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.image-upload-section small {
+  color: #656d76;
+  font-size: 12px;
+}
+
+/* 画像表示対応 */
+.content-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 16px 0;
+  display: block;
+}
+
+/* ファイル管理 */
+.file-upload-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.upload-btn {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #238636;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.upload-btn:hover:not([disabled]) {
+  background-color: #2ea043;
+}
+
+.upload-btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.original-filename {
+  font-weight: 500;
+  color: #24292f;
+}
+
+.filename {
+  font-size: 12px;
+  color: #656d76;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.file-icon {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f6f8fa;
+  border-radius: 4px;
+  font-size: 20px;
 }
 
 /* Responsive footer */
