@@ -94,25 +94,9 @@ def delete_category(
             detail="カテゴリが見つかりません"
         )
     
-    # デフォルトカテゴリ（未分類）は削除不可
-    if category.name == "未分類":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="デフォルトカテゴリ（未分類）は削除できません"
-        )
-    
-    # このカテゴリを使用している記事を未分類に移動
-    from infrastructure.persistence.models import ContentModel
-    uncategorized = db.query(CategoryModel).filter(
-        CategoryModel.name == "未分類",
-        CategoryModel.deleted_at.is_(None)
-    ).first()
-    
-    if uncategorized:
-        db.query(ContentModel).filter(
-            ContentModel.category_id == category_id,
-            ContentModel.deleted_at.is_(None)
-        ).update({"category_id": uncategorized.id})
+    # このカテゴリを使用している記事から関連付けを削除（未分類になる）
+    for content in category.contents:
+        content.categories.remove(category)
     
     category.deleted_at = datetime.utcnow()
     db.commit()

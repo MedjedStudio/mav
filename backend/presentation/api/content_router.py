@@ -9,6 +9,13 @@ from presentation.schemas.content_schemas import ContentCreate, ContentUpdate, C
 
 router = APIRouter()
 
+def get_category_names(content):
+    """コンテンツのカテゴリ名を取得し、空の場合は「未分類」を返す"""
+    category_names = [cat.name for cat in content.categories if cat.deleted_at is None]
+    if not category_names:
+        category_names = ["未分類"]
+    return category_names
+
 # 管理者専用: コンテンツ作成
 @router.post("/", response_model=ContentResponse)
 def create_content(
@@ -31,20 +38,13 @@ def create_content(
             CategoryModel.deleted_at.is_(None)
         ).all()
         content.categories = categories
-    else:
-        # デフォルトカテゴリ（未分類）を設定
-        default_category = db.query(CategoryModel).filter(
-            CategoryModel.name == "未分類",
-            CategoryModel.deleted_at.is_(None)
-        ).first()
-        if default_category:
-            content.categories = [default_category]
+    # カテゴリが指定されていない場合は何もしない（未分類として扱う）
     
     db.commit()
     db.refresh(content)
     
     # カテゴリ名を含むレスポンスを生成
-    category_names = [cat.name for cat in content.categories if cat.deleted_at is None]
+    category_names = get_category_names(content)
     
     return ContentResponse(
         id=content.id,
@@ -92,7 +92,7 @@ def update_content(
     db.refresh(content)
     
     # カテゴリ名を含むレスポンスを生成
-    category_names = [cat.name for cat in content.categories if cat.deleted_at is None]
+    category_names = get_category_names(content)
     
     return ContentResponse(
         id=content.id,
@@ -140,7 +140,7 @@ def get_all_contents_admin(
     # カテゴリ名を含むレスポンスを生成
     result = []
     for content in contents:
-        category_names = [cat.name for cat in content.categories if cat.deleted_at is None]
+        category_names = get_category_names(content)
         
         result.append(ContentResponse(
             id=content.id,
@@ -189,7 +189,7 @@ def get_contents(
     # カテゴリ名を含むレスポンスを生成
     result = []
     for content in contents:
-        category_names = [cat.name for cat in content.categories if cat.deleted_at is None]
+        category_names = get_category_names(content)
         
         result.append(ContentResponse(
             id=content.id,

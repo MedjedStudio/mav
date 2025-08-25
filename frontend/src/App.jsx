@@ -87,7 +87,7 @@ function App() {
 
   return (
     <div className="app">
-      <Header user={user} onLogout={handleLogout} onProfile={() => setView('profile')} />
+      <Header user={user} onLogout={handleLogout} />
       
       <main className="main-content">
         {view === 'login' && (
@@ -95,11 +95,7 @@ function App() {
         )}
         
         {view === 'admin' && user?.role === 'admin' && (
-          <AdminPanel onCategoryManage={() => setView('category-manage')} />
-        )}
-        
-        {view === 'category-manage' && user?.role === 'admin' && (
-          <CategoryManagement onBack={() => setView('admin')} />
+          <AdminPanel user={user} onUpdate={setUser} />
         )}
         
         {view === 'profile' && user && (
@@ -117,7 +113,7 @@ function App() {
 }
 
 // ヘッダーコンポーネント
-function Header({ user, onLogout, onProfile }) {
+function Header({ user, onLogout }) {
   const [showDropdown, setShowDropdown] = useState(false)
   
   useEffect(() => {
@@ -148,14 +144,6 @@ function Header({ user, onLogout, onProfile }) {
               </button>
               {showDropdown && (
                 <div className="dropdown-menu">
-                  {user.role === 'admin' && (
-                    <div className="dropdown-item role-info">
-                      管理者
-                    </div>
-                  )}
-                  <button className="dropdown-item" onClick={() => { onProfile(); setShowDropdown(false) }}>
-                    プロファイル
-                  </button>
                   <button className="dropdown-item" onClick={() => { onLogout(); setShowDropdown(false) }}>
                     ログアウト
                   </button>
@@ -223,14 +211,28 @@ function LoginForm({ onLogin, onCancel }) {
 }
 
 // 管理者パネル
-function AdminPanel({ onCategoryManage }) {
+function AdminPanel({ user, onUpdate }) {
   const [contents, setContents] = useState([])
   const [editingContent, setEditingContent] = useState(null)
   const [showForm, setShowForm] = useState(false)
-  const [activeView, setActiveView] = useState('contents') // 'contents' or 'categories'
+  const [activeView, setActiveView] = useState('contents') // 'contents', 'categories', or 'profile'
+  
+  // カテゴリ管理用の状態
+  const [categories, setCategories] = useState([])
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [showCategoryForm, setShowCategoryForm] = useState(false)
+  
+  // 確認モーダル用の状態
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  })
 
   useEffect(() => {
     loadContents()
+    loadCategories()
   }, [])
 
   const loadContents = async () => {
@@ -267,48 +269,129 @@ function AdminPanel({ onCategoryManage }) {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('本当に削除しますか？')) return
-    
     const token = getToken()
     try {
       await axios.delete(`${API_BASE_URL}/contents/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       loadContents()
+      setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })
     } catch (error) {
       console.error('削除失敗:', error)
     }
   }
 
+  const showDeleteConfirm = (id, title) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'コンテンツ削除',
+      message: `「${title}」を削除しますか？`,
+      onConfirm: () => handleDelete(id)
+    })
+  }
+
+  const loadCategories = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/categories/`)
+      setCategories(response.data)
+    } catch (error) {
+      console.error('カテゴリ取得失敗:', error)
+    }
+  }
+
+  const handleCategorySave = async (categoryData) => {
+    const token = getToken()
+    try {
+      if (editingCategory) {
+        await axios.put(`${API_BASE_URL}/categories/${editingCategory.id}`, categoryData, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } else {
+        await axios.post(`${API_BASE_URL}/categories/`, categoryData, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      }
+      loadCategories()
+      setEditingCategory(null)
+      setShowCategoryForm(false)
+    } catch (error) {
+      console.error('保存失敗:', error)
+      alert(error.response?.data?.detail || '保存に失敗しました')
+    }
+  }
+
+  const handleCategoryDelete = async (id, name) => {
+    const token = getToken()
+    try {
+      await axios.delete(`${API_BASE_URL}/categories/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      loadCategories()
+      setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })
+    } catch (error) {
+      console.error('削除失敗:', error)
+      alert(error.response?.data?.detail || '削除に失敗しました')
+    }
+  }
+
+  const showCategoryDeleteConfirm = (id, name) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'カテゴリ削除',
+      message: `「${name}」カテゴリを削除しますか？\nこのカテゴリの記事は「未分類」になります。`,
+      onConfirm: () => handleCategoryDelete(id, name)
+    })
+  }
+
+  const handleViewChange = (view) => {
+    setActiveView(view)
+    setShowForm(false)
+    setEditingContent(null)
+    setShowCategoryForm(false)
+    setEditingCategory(null)
+  }
+
   return (
     <div className="admin-panel">
-      <div className="admin-sidebar">
-        <h2>管理メニュー</h2>
-        <nav className="admin-nav">
-          <button 
-            className={activeView === 'contents' ? 'active' : ''}
-            onClick={() => {
-              setActiveView('contents')
-              setShowForm(false)
-              setEditingContent(null)
-            }}
-          >
-            コンテンツ管理
-          </button>
-          <button 
-            className={activeView === 'categories' ? 'active' : ''}
-            onClick={() => {
-              setActiveView('categories')
-              onCategoryManage()
-            }}
-          >
-            カテゴリ管理
-          </button>
-        </nav>
-      </div>
+      <AdminSidebar 
+        activeView={activeView} 
+        onViewChange={handleViewChange} 
+      />
 
       <div className="admin-main">
-        {(showForm || editingContent) ? (
+        {activeView === 'profile' ? (
+          <AdminProfileEdit user={user} onUpdate={onUpdate} />
+        ) : activeView === 'categories' ? (
+          (showCategoryForm || editingCategory) ? (
+            <CategoryForm
+              category={editingCategory}
+              onSave={handleCategorySave}
+              onCancel={() => { setShowCategoryForm(false); setEditingCategory(null) }}
+            />
+          ) : (
+            <div className="content-list">
+              <div className="content-list-header">
+                <h3>カテゴリ一覧</h3>
+                <button 
+                  className="btn-primary"
+                  onClick={() => { setShowCategoryForm(true); setEditingCategory(null) }}
+                >
+                  新規カテゴリ作成
+                </button>
+              </div>
+              {categories.map(category => (
+                <div key={category.id} className="content-item">
+                  <h4>{category.name}</h4>
+                  <p>{category.description || '説明なし'}</p>
+                  <div className="content-actions">
+                    <button onClick={() => setEditingCategory(category)}>編集</button>
+                    <button onClick={() => showCategoryDeleteConfirm(category.id, category.name)}>削除</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : (showForm || editingContent) ? (
           <ContentForm
             content={editingContent}
             onSave={handleSave}
@@ -340,13 +423,21 @@ function AdminPanel({ onCategoryManage }) {
                 )}
                 <div className="content-actions">
                   <button onClick={() => setEditingContent(content)}>編集</button>
-                  <button onClick={() => handleDelete(content.id)}>削除</button>
+                  <button onClick={() => showDeleteConfirm(content.id, content.title)}>削除</button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+      
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })}
+      />
     </div>
   )
 }
@@ -369,12 +460,9 @@ function ContentForm({ content, onSave, onCancel }) {
         .filter(cat => content.categories.includes(cat.name))
         .map(cat => cat.id)
       setSelectedCategoryIds(categoryIds)
-    } else if (!content && availableCategories.length > 0) {
-      // 新規作成時はデフォルトで「未分類」を選択
-      const uncategorized = availableCategories.find(cat => cat.name === '未分類')
-      if (uncategorized) {
-        setSelectedCategoryIds([uncategorized.id])
-      }
+    } else if (!content) {
+      // 新規作成時はカテゴリを選択しない（未分類として扱う）
+      setSelectedCategoryIds([])
     }
   }, [content, availableCategories])
 
@@ -447,113 +535,32 @@ function ContentForm({ content, onSave, onCancel }) {
   )
 }
 
-// カテゴリ管理
-function CategoryManagement({ onBack }) {
-  const [categories, setCategories] = useState([])
-  const [editingCategory, setEditingCategory] = useState(null)
-  const [showForm, setShowForm] = useState(false)
 
-  useEffect(() => {
-    loadCategories()
-  }, [])
-
-  const loadCategories = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/categories/`)
-      setCategories(response.data)
-    } catch (error) {
-      console.error('カテゴリ取得失敗:', error)
-    }
-  }
-
-  const handleSave = async (categoryData) => {
-    const token = getToken()
-    try {
-      if (editingCategory) {
-        await axios.put(`${API_BASE_URL}/categories/${editingCategory.id}`, categoryData, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      } else {
-        await axios.post(`${API_BASE_URL}/categories/`, categoryData, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      }
-      loadCategories()
-      setEditingCategory(null)
-      setShowForm(false)
-    } catch (error) {
-      console.error('保存失敗:', error)
-      alert(error.response?.data?.detail || '保存に失敗しました')
-    }
-  }
-
-  const handleDelete = async (id, name) => {
-    if (name === '未分類') {
-      alert('デフォルトカテゴリ（未分類）は削除できません')
-      return
-    }
-    
-    if (!confirm(`「${name}」カテゴリを削除しますか？\nこのカテゴリの記事は「未分類」に移動されます。`)) return
-    
-    const token = getToken()
-    try {
-      await axios.delete(`${API_BASE_URL}/categories/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      loadCategories()
-    } catch (error) {
-      console.error('削除失敗:', error)
-      alert(error.response?.data?.detail || '削除に失敗しました')
-    }
-  }
-
+// 管理メニューコンポーネント
+function AdminSidebar({ activeView, onViewChange }) {
   return (
-    <div className="admin-panel">
-      <div className="admin-sidebar">
-        <h2>管理メニュー</h2>
-        <nav className="admin-nav">
-          <button onClick={onBack}>
-            コンテンツ管理
-          </button>
-          <button className="active">
-            カテゴリ管理
-          </button>
-        </nav>
-      </div>
-
-      <div className="admin-main">
-        {(showForm || editingCategory) ? (
-          <CategoryForm
-            category={editingCategory}
-            onSave={handleSave}
-            onCancel={() => { setShowForm(false); setEditingCategory(null) }}
-          />
-        ) : (
-          <div className="content-list">
-            <div className="content-list-header">
-              <h3>カテゴリ一覧</h3>
-              <button 
-                className="btn-primary"
-                onClick={() => { setShowForm(true); setEditingCategory(null) }}
-              >
-                新規カテゴリ作成
-              </button>
-            </div>
-            {categories.map(category => (
-              <div key={category.id} className="content-item">
-                <h4>{category.name}</h4>
-                <p>{category.description || '説明なし'}</p>
-                <div className="content-actions">
-                  <button onClick={() => setEditingCategory(category)}>編集</button>
-                  {category.name !== '未分類' && (
-                    <button onClick={() => handleDelete(category.id, category.name)}>削除</button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="admin-sidebar">
+      <h2>管理メニュー</h2>
+      <nav className="admin-nav">
+        <button 
+          className={activeView === 'contents' ? 'active' : ''}
+          onClick={() => onViewChange('contents')}
+        >
+          コンテンツ管理
+        </button>
+        <button 
+          className={activeView === 'categories' ? 'active' : ''}
+          onClick={() => onViewChange('categories')}
+        >
+          カテゴリ管理
+        </button>
+        <button 
+          className={activeView === 'profile' ? 'active' : ''}
+          onClick={() => onViewChange('profile')}
+        >
+          プロフィール
+        </button>
+      </nav>
     </div>
   )
 }
@@ -594,6 +601,169 @@ function CategoryForm({ category, onSave, onCancel }) {
           <button type="button" onClick={onCancel}>キャンセル</button>
         </div>
       </form>
+    </div>
+  )
+}
+
+// 管理パネル用プロファイル編集
+function AdminProfileEdit({ user, onUpdate }) {
+  const [username, setUsername] = useState(user.username)
+  const [email, setEmail] = useState(user.email)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    setUsername(user.username)
+    setEmail(user.email)
+  }, [user.username, user.email])
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const token = getToken()
+      const response = await axios.put(`${API_BASE_URL}/auth/profile`, {
+        username: username !== user.username ? username : undefined,
+        email: email !== user.email ? email : undefined
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      if (response.data.access_token) {
+        setToken(response.data.access_token)
+      }
+      
+      const updatedUser = { ...user, username: response.data.username, email: response.data.email }
+      onUpdate(updatedUser)
+      setUsername(response.data.username)
+      setEmail(response.data.email)
+      setMessage('プロファイルを更新しました')
+    } catch (error) {
+      console.error('プロファイル更新失敗:', error)
+      setError(error.response?.data?.detail || 'プロファイル更新に失敗しました')
+    }
+    setIsLoading(false)
+  }
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      setError('新しいパスワードが一致しません')
+      return
+    }
+    if (newPassword.length < 6) {
+      setError('パスワードは6文字以上で入力してください')
+      return
+    }
+
+    setIsLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const token = getToken()
+      await axios.put(`${API_BASE_URL}/auth/password`, {
+        current_password: currentPassword,
+        new_password: newPassword
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      setMessage('パスワードを変更しました')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error) {
+      console.error('パスワード変更失敗:', error)
+      setError(error.response?.data?.detail || 'パスワード変更に失敗しました')
+    }
+    setIsLoading(false)
+  }
+
+  return (
+    <div className="content-list">
+      <div className="content-list-header">
+        <h3>プロフィール設定</h3>
+      </div>
+      
+      {message && <div className="success">{message}</div>}
+      {error && <div className="error">{error}</div>}
+
+      <div className="content-item">
+        <h4>基本情報</h4>
+        <form onSubmit={handleProfileUpdate}>
+          <div>
+            <label>ユーザー名:</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label>メールアドレス:</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-buttons">
+            <button type="submit" disabled={isLoading}>
+              {isLoading ? '更新中...' : 'プロフィール更新'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="content-item">
+        <h4>パスワード変更</h4>
+        <form onSubmit={handlePasswordChange}>
+          <div>
+            <label>現在のパスワード:</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label>新しいパスワード:</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+          </div>
+          <div>
+            <label>新しいパスワード（確認）:</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+          </div>
+          <div className="form-buttons">
+            <button type="submit" disabled={isLoading}>
+              {isLoading ? '変更中...' : 'パスワード変更'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
@@ -762,6 +932,28 @@ function ProfileEdit({ user, onUpdate, onCancel }) {
 
       <div className="form-buttons">
         <button type="button" onClick={onCancel}>戻る</button>
+      </div>
+    </div>
+  )
+}
+
+// 確認モーダル
+function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }) {
+  if (!isOpen) return null
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h3>{title}</h3>
+        <p>{message}</p>
+        <div className="modal-actions">
+          <button className="btn-danger" onClick={onConfirm}>
+            削除
+          </button>
+          <button onClick={onCancel}>
+            キャンセル
+          </button>
+        </div>
       </div>
     </div>
   )
