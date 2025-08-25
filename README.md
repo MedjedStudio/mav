@@ -1,277 +1,212 @@
-# MAV Application
+# MAV CMS
 
-FastAPI + Reactを使用したフルスタックWebアプリケーションです。
+FastAPI + React + MySQLを使用したコンテンツ管理システムです。
 
-## アーキテクチャ
+## 機能
 
-- **アーキテクチャパターン**: Domain Driven Design (DDD)
+- **認証・認可**: JWT認証、管理者権限管理
+- **コンテンツ管理**: 記事の作成・編集・削除（論理削除）
+- **カテゴリ管理**: 多対多関係でのカテゴリ分類
+- **プロファイル管理**: ユーザー名・メール・パスワード変更
+- **公開ページ**: カテゴリフィルタ付きコンテンツ一覧
+
+## 技術スタック
+
 - **バックエンド**: FastAPI + Uvicorn
 - **データベース**: MySQL 8.0
 - **ORM**: SQLAlchemy
 - **フロントエンド**: React + Vite
+- **認証**: JWT (JSON Web Token)
 - **開発環境**: Docker + Docker Compose
 
 ## プロジェクト構成
 
 ```
 mav/
-├── backend/                        # FastAPI アプリケーション (DDD構造)
+├── backend/                        # FastAPI アプリケーション
 │   ├── app.py                     # FastAPIメインアプリ
-│   ├── database.py                # データベース設定（後方互換性）
-│   ├── models.py                  # 旧モデル（Alembic互換性）
-│   ├── domain/                    # ドメイン層
-│   │   ├── entities/             # エンティティ
-│   │   │   └── user.py
-│   │   ├── value_objects/        # 値オブジェクト
-│   │   │   ├── email.py
-│   │   │   └── username.py
-│   │   └── repositories/         # リポジトリインターフェース
-│   │       └── user_repository.py
-│   ├── application/              # アプリケーション層
-│   │   ├── dto/                  # データ転送オブジェクト
-│   │   │   └── user_dto.py
-│   │   ├── use_cases/           # ユースケース
-│   │   │   └── user_use_cases.py
-│   │   └── services/            # アプリケーションサービス
-│   │       └── user_service.py
-│   ├── infrastructure/          # インフラストラクチャ層
-│   │   ├── persistence/         # データベース関連
-│   │   │   ├── database.py      # DB接続設定
-│   │   │   └── models.py        # SQLAlchemyモデル
-│   │   └── repositories/        # リポジトリ実装
-│   │       └── user_repository.py
-│   ├── presentation/            # プレゼンテーション層
-│   │   ├── api/                 # APIルーター
-│   │   │   └── user_router.py
-│   │   └── schemas/             # リクエスト/レスポンススキーマ
-│   │       └── user_schemas.py
-│   ├── alembic/                 # データベースマイグレーション
-│   ├── requirements.txt         # Python依存関係
-│   ├── Dockerfile              # バックエンド用Docker設定
-│   └── .env.example            # バックエンド環境変数テンプレート
-├── frontend/              # React アプリケーション
+│   ├── infrastructure/            # インフラストラクチャ層
+│   │   └── persistence/          # データベース関連
+│   │       ├── database.py       # DB接続設定
+│   │       └── models.py         # SQLAlchemyモデル
+│   ├── presentation/             # プレゼンテーション層
+│   │   ├── api/                  # APIルーター
+│   │   │   ├── auth_router.py    # 認証API
+│   │   │   ├── content_router.py # コンテンツAPI
+│   │   │   └── category_router.py# カテゴリAPI
+│   │   └── schemas/              # リクエスト/レスポンススキーマ
+│   │       ├── auth_schemas.py   # 認証スキーマ
+│   │       ├── content_schemas.py# コンテンツスキーマ
+│   │       └── category_schemas.py# カテゴリスキーマ
+│   ├── alembic/                  # データベースマイグレーション
+│   ├── requirements.txt          # Python依存関係
+│   └── Dockerfile               # バックエンド用Docker設定
+├── frontend/                     # React アプリケーション
 │   ├── src/
-│   │   ├── App.jsx        # メインコンポーネント
-│   │   ├── App.css        # スタイル
-│   │   └── main.jsx       # エントリーポイント
-│   ├── package.json       # Node.js依存関係
-│   ├── vite.config.js     # Vite設定
-│   ├── Dockerfile         # フロントエンド用Docker設定
-│   └── index.html         # HTMLテンプレート
-├── docker-compose.yml     # 開発環境用Docker構成
-├── .env.example           # プロジェクト全体環境変数
-├── .gitignore             # Git除外設定
-└── README.md              # プロジェクト説明
+│   │   ├── App.jsx              # メインコンポーネント
+│   │   ├── App.css              # スタイル
+│   │   └── main.jsx             # エントリーポイント
+│   ├── package.json             # Node.js依存関係
+│   ├── vite.config.js           # Vite設定
+│   ├── Dockerfile              # フロントエンド用Docker設定
+│   └── index.html              # HTMLテンプレート
+├── docker-compose.yml          # 開発環境用Docker構成
+└── README.md                   # プロジェクト説明
 ```
 
-## API仕様
-
-
-
-### POST /users
-ユーザー作成
-
-**リクエスト:**
-```json
-{
-  "username": "test_user",
-  "email": "test@example.com"
-}
-```
-
-**レスポンス:**
-```json
-{
-  "id": 1,
-  "username": "test_user",
-  "email": "test@example.com",
-  "created_at": "2025-08-25T12:00:00.000000"
-}
-```
-
-### GET /users
-ユーザー一覧取得
-
-**パラメータ:**
-- `skip`: スキップする件数（デフォルト: 0）
-- `limit`: 取得件数（デフォルト: 100）
-
-**レスポンス:**
-```json
-[
-  {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@example.com",
-    "created_at": "2025-08-25T12:00:00.000000"
-  }
-]
-```
-
-## ローカル開発環境
+## クイックスタート
 
 ### 1. 環境構築
 
 ```bash
-# リポジトリをクローン
-cd /home/suisui/WebProjects/mav
-
-# 環境変数の設定
-cp .env.example .env
-
-# フロントエンドの依存関係をインストール（package-lock.json生成）
-cd frontend
-npm install
-cd ..
-```
-
-### 2. Docker Composeで起動
-
-```bash
-# 全体を起動（初回はビルドも実行）
+# Docker Composeで全サービスを起動
 sudo docker compose up --build -d
 
-# マイグレーション実行（初回 or スキーマ変更時）
+# データベースマイグレーションを実行
 sudo docker compose run --rm migrate
 ```
 
-### 3. アクセス
+### 2. アクセス
 
 - **フロントエンド**: http://localhost:3000
 - **バックエンドAPI**: http://localhost:8000
 - **API仕様書**: http://localhost:8000/docs
 
-### 4. 開発時の操作
+### 3. デフォルトログイン情報
+
+- **メールアドレス**: admin@example.com
+- **パスワード**: password
+
+## 主要API
+
+### 認証
+
+- `POST /auth/login` - ログイン
+- `GET /auth/me` - ユーザー情報取得
+- `PUT /auth/profile` - プロファイル更新
+- `PUT /auth/password` - パスワード変更
+
+### コンテンツ管理（管理者のみ）
+
+- `POST /contents/` - コンテンツ作成
+- `PUT /contents/{id}` - コンテンツ更新
+- `DELETE /contents/{id}` - コンテンツ削除
+- `GET /contents/admin` - 管理者用コンテンツ一覧
+
+### 公開API
+
+- `GET /contents/` - 公開コンテンツ一覧
+- `GET /contents/{id}` - 個別コンテンツ取得
+- `GET /categories/` - カテゴリ一覧
+
+### カテゴリ管理（管理者のみ）
+
+- `POST /categories/` - カテゴリ作成
+- `PUT /categories/{id}` - カテゴリ更新
+- `DELETE /categories/{id}` - カテゴリ削除
+
+## 開発コマンド
+
+### Docker Compose操作
 
 ```bash
-# ログ確認
-sudo docker compose logs
+# サービス起動
+sudo docker compose up -d
 
-# 特定のサービスのログ確認
+# ログ確認
 sudo docker compose logs backend
 sudo docker compose logs frontend
 
 # サービス再起動
 sudo docker compose restart backend
-sudo docker compose restart frontend
 
-# コード修正後の再起動（リビルド）
-sudo docker compose down && sudo docker compose up --build -d
-
-# 停止
+# 停止・削除
 sudo docker compose down
 
-# 完全クリーンアップ（ボリューム含む）
+# 完全クリーンアップ（データベース含む）
 sudo docker compose down -v
 ```
 
-### 5. 個別サービスの開発
-
-#### バックエンドのみ開発
+### データベースマイグレーション
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-pip install -r requirements.txt
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
+# マイグレーション実行
+sudo docker compose run --rm migrate
+
+# 新しいマイグレーションファイル作成
+sudo docker compose exec backend alembic revision --autogenerate -m "Description"
+
+# マイグレーション履歴確認
+sudo docker compose exec backend alembic history
 ```
 
-#### フロントエンドのみ開発
+### データベースアクセス
 
 ```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## テスト
-
-### API テスト（バックエンド）
-
-```bash
-# ユーザー作成
-curl -X POST "http://localhost:8000/users" \
-  -H "Content-Type: application/json" \
-  -d '{"username": "new_user", "email": "new@example.com"}'
-
-# ユーザー一覧取得
-curl -X GET "http://localhost:8000/users"
-```
-
-### MySQLデータベースアクセス
-
-**開発者用MySQLログインコマンド:**
-```bash
+# MySQL接続
 sudo docker compose exec mysql mysql -u mav_user -pmav_password mav_db
-```
 
-```bash
-# データベース確認
+# テーブル確認
 SHOW TABLES;
 SELECT * FROM users;
 SELECT * FROM contents;
-SELECT * FROM alembic_version;
+SELECT * FROM categories;
+SELECT * FROM content_categories;
 ```
 
-## データベースマイグレーション
+## APIテスト例
 
-### マイグレーションの実行
-
-プロジェクトでは**Alembic**を使用してデータベーススキーマの変更を管理しています。
+### ログイン
 
 ```bash
-# 初回起動時（自動実行）
-# docker-compose up --build実行時に自動でマイグレーションが実行されます
-
-# 手動でマイグレーション実行
-sudo docker compose run --rm migrate
-
-# バックエンドコンテナ内でマイグレーション実行
-sudo docker compose exec backend alembic upgrade head
+curl -X POST "http://localhost:8000/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "password"}'
 ```
 
-### 新しいマイグレーションファイルの作成
+### コンテンツ作成（要認証）
 
 ```bash
-# バックエンドコンテナに接続
-sudo docker compose exec backend bash
-
-# モデルの変更を自動検出してマイグレーションファイル作成
-alembic revision --autogenerate -m "Add new column"
-
-# 手動でマイグレーションファイル作成
-alembic revision -m "Manual migration"
-
-# マイグレーション実行
-alembic upgrade head
-
-# マイグレーション履歴確認
-alembic history --verbose
-
-# 現在のマイグレーション状態確認
-alembic current
+TOKEN="your_jwt_token_here"
+curl -X POST "http://localhost:8000/contents/" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "title": "新しい記事",
+    "content": "記事の内容",
+    "category_ids": [1, 2]
+  }'
 ```
 
-### マイグレーションのロールバック
+### 公開コンテンツ取得
 
 ```bash
-# 1つ前のバージョンに戻す
-alembic downgrade -1
+# 全コンテンツ
+curl "http://localhost:8000/contents/"
 
-# 特定のリビジョンに戻す
-alembic downgrade 001
-
-# 全てのマイグレーションを取り消し
-alembic downgrade base
+# カテゴリフィルタ
+curl "http://localhost:8000/contents/?category=ニュース"
 ```
+
+## データベース構造
+
+### 主要テーブル
+
+- **users**: ユーザー情報（管理者・一般ユーザー）
+- **contents**: コンテンツ（記事）
+- **categories**: カテゴリ
+- **content_categories**: コンテンツとカテゴリの多対多関係
+
+### 多対多関係
+
+コンテンツとカテゴリは中間テーブル`content_categories`で関連付けられており、1つのコンテンツに複数のカテゴリを割り当て可能です。
 
 ## トラブルシューティング
 
-### ポートが使用中の場合
+### ポートが使用中
 
 ```bash
-# ポート使用状況確認
+# ポート確認
 sudo netstat -tulpn | grep :3000
 sudo netstat -tulpn | grep :8000
 
@@ -282,34 +217,45 @@ sudo kill -9 <PID>
 ### Docker関連の問題
 
 ```bash
-# Docker環境をクリーンアップ
+# Docker環境クリーンアップ
 sudo docker system prune -f
 sudo docker compose down -v
-
-# package-lock.jsonが無い場合
-cd frontend
-npm install
-cd ..
-
-# 再ビルド
 sudo docker compose up --build -d
 ```
 
-## 開発のポイント
+### データベース接続エラー
 
-1. **CORS設定**: バックエンドでフロントエンドからのリクエストを許可済み
-2. **ホットリロード**: 両方のサービスでコード変更時の自動リロード対応済み
-3. **ボリュームマウント**: ソースコード変更がコンテナに即座に反映
-4. **データベース**: MySQL 8.0でデータを永続化、ヘルスチェック機能付き
-5. **ORM**: SQLAlchemyでデータベース操作を抽象化
-6. **マイグレーション管理**: Alembicによるスキーマ変更の履歴管理
-7. **自動マイグレーション**: Docker Compose起動時にマイグレーションを自動実行
-8. **初期データ**: マイグレーションファイルで管理者ユーザーを自動作成
-9. **ロールバック対応**: データベーススキーマの巻き戻し機能
-10. **論理削除**: deleted_atカラムによる論理削除機能
-11. **JWT認証**: パスワードハッシュ化とトークンベース認証
-12. **メール認証**: ユーザー名ではなくメールアドレスでログイン
+```bash
+# データベースコンテナの状態確認
+sudo docker compose ps
+sudo docker compose logs mysql
+
+# マイグレーションの再実行
+sudo docker compose run --rm migrate
+```
+
+## UI/UX特徴
+
+- GitHub風の固定幅レイアウト（1280px）
+- 2カラムレイアウト（メインコンテンツ + サイドバー）
+- レスポンシブデザイン対応
+- チェックボックスによる複数カテゴリ選択
+- リアルタイムカテゴリフィルタ
+
+## セキュリティ
+
+- パスワードハッシュ化（bcrypt）
+- JWT認証
+- 管理者権限チェック
+- 論理削除（データの物理削除を回避）
+- CORS設定
 
 ## 本番環境への展開
 
-本番環境では、各サービスを個別にビルドし、適切なWebサーバー（Nginx等）でホストすることを推奨します。
+本番環境では以下の点に注意してください：
+
+1. 環境変数の適切な設定（JWT_SECRET等）
+2. HTTPSの使用
+3. データベースのバックアップ設定
+4. ログ監視の設定
+5. リバースプロキシ（Nginx等）の設定

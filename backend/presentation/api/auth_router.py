@@ -81,13 +81,14 @@ def get_me(current_user: UserModel = Depends(get_current_user)):
         role=current_user.role.value
     )
 
-@router.put("/profile", response_model=UserProfile)
+@router.put("/profile")
 def update_profile(
     profile_data: UserProfileUpdate,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
 ):
     # メールアドレスの重複チェック
+    email_changed = False
     if profile_data.email and profile_data.email != current_user.email:
         existing_user = db.query(UserModel).filter(
             UserModel.email == profile_data.email,
@@ -99,6 +100,7 @@ def update_profile(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="このメールアドレスは既に使用されています"
             )
+        email_changed = True
     
     # ユーザー名の重複チェック
     if profile_data.username and profile_data.username != current_user.username:
@@ -122,12 +124,22 @@ def update_profile(
     db.commit()
     db.refresh(current_user)
     
-    return UserProfile(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email,
-        role=current_user.role.value
-    )
+    # メールアドレスが変更された場合は新しいトークンを発行
+    response_data = {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "role": current_user.role.value
+    }
+    
+    if email_changed:
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": current_user.email}, expires_delta=access_token_expires
+        )
+        response_data["access_token"] = access_token
+    
+    return response_data
 
 @router.put("/password")
 def change_password(
