@@ -118,17 +118,49 @@ function App() {
 
 // ヘッダーコンポーネント
 function Header({ user, onLogout, onProfile }) {
+  const [showDropdown, setShowDropdown] = useState(false)
+  
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.user-menu')) {
+        setShowDropdown(false)
+      }
+    }
+    
+    if (showDropdown) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showDropdown])
+
   return (
     <header className="header">
       <div className="header-container">
         <h1>MAV</h1>
         <div className="auth-section">
           {user && (
-            <div>
-              <span>ようこそ、{user.username}さん</span>
-              {user.role === 'admin' && <span className="admin-badge">管理者</span>}
-              <button onClick={onProfile}>プロファイル</button>
-              <button onClick={onLogout}>ログアウト</button>
+            <div className="user-menu">
+              <button 
+                className="user-button"
+                onClick={() => setShowDropdown(!showDropdown)}
+              >
+                {user.username}
+              </button>
+              {showDropdown && (
+                <div className="dropdown-menu">
+                  {user.role === 'admin' && (
+                    <div className="dropdown-item role-info">
+                      管理者
+                    </div>
+                  )}
+                  <button className="dropdown-item" onClick={() => { onProfile(); setShowDropdown(false) }}>
+                    プロファイル
+                  </button>
+                  <button className="dropdown-item" onClick={() => { onLogout(); setShowDropdown(false) }}>
+                    ログアウト
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -195,6 +227,7 @@ function AdminPanel({ onCategoryManage }) {
   const [contents, setContents] = useState([])
   const [editingContent, setEditingContent] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [activeView, setActiveView] = useState('contents') // 'contents' or 'categories'
 
   useEffect(() => {
     loadContents()
@@ -249,46 +282,70 @@ function AdminPanel({ onCategoryManage }) {
 
   return (
     <div className="admin-panel">
-      <h2>管理者画面</h2>
-      
-      <div className="admin-actions">
-        <button onClick={() => { setShowForm(true); setEditingContent(null) }}>
-          新規コンテンツ作成
-        </button>
-        <button onClick={onCategoryManage}>
-          カテゴリ管理
-        </button>
+      <div className="admin-sidebar">
+        <h2>管理メニュー</h2>
+        <nav className="admin-nav">
+          <button 
+            className={activeView === 'contents' ? 'active' : ''}
+            onClick={() => {
+              setActiveView('contents')
+              setShowForm(false)
+              setEditingContent(null)
+            }}
+          >
+            コンテンツ管理
+          </button>
+          <button 
+            className={activeView === 'categories' ? 'active' : ''}
+            onClick={() => {
+              setActiveView('categories')
+              onCategoryManage()
+            }}
+          >
+            カテゴリ管理
+          </button>
+        </nav>
       </div>
 
-      {(showForm || editingContent) && (
-        <ContentForm
-          content={editingContent}
-          onSave={handleSave}
-          onCancel={() => { setShowForm(false); setEditingContent(null) }}
-        />
-      )}
-
-      <div className="content-list">
-        <h3>コンテンツ一覧</h3>
-        {contents.map(content => (
-          <div key={content.id} className="content-item">
-            <h4>{content.title}</h4>
-            <p>{content.content.substring(0, 100)}...</p>
-            {content.categories && content.categories.length > 0 && (
-              <div style={{ margin: '0.5rem 0' }}>
-                {content.categories.map(cat => (
-                  <span key={cat} className="content-category" style={{ marginRight: '8px' }}>
-                    {cat}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="content-actions">
-              <button onClick={() => setEditingContent(content)}>編集</button>
-              <button onClick={() => handleDelete(content.id)}>削除</button>
+      <div className="admin-main">
+        {(showForm || editingContent) ? (
+          <ContentForm
+            content={editingContent}
+            onSave={handleSave}
+            onCancel={() => { setShowForm(false); setEditingContent(null) }}
+          />
+        ) : (
+          <div className="content-list">
+            <div className="content-list-header">
+              <h3>コンテンツ一覧</h3>
+              <button 
+                className="btn-primary"
+                onClick={() => { setShowForm(true); setEditingContent(null) }}
+              >
+                新規コンテンツ作成
+              </button>
             </div>
+            {contents.map(content => (
+              <div key={content.id} className="content-item">
+                <h4>{content.title}</h4>
+                <p>{content.content.substring(0, 100)}...</p>
+                {content.categories && content.categories.length > 0 && (
+                  <div style={{ margin: '0.5rem 0' }}>
+                    {content.categories.map(cat => (
+                      <span key={cat} className="content-category" style={{ marginRight: '8px' }}>
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="content-actions">
+                  <button onClick={() => setEditingContent(content)}>編集</button>
+                  <button onClick={() => handleDelete(content.id)}>削除</button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
@@ -452,37 +509,50 @@ function CategoryManagement({ onBack }) {
 
   return (
     <div className="admin-panel">
-      <h2>カテゴリ管理</h2>
-      
-      <div className="admin-actions">
-        <button onClick={() => { setShowForm(true); setEditingCategory(null) }}>
-          新規カテゴリ作成
-        </button>
-        <button onClick={onBack}>管理者画面に戻る</button>
+      <div className="admin-sidebar">
+        <h2>管理メニュー</h2>
+        <nav className="admin-nav">
+          <button onClick={onBack}>
+            コンテンツ管理
+          </button>
+          <button className="active">
+            カテゴリ管理
+          </button>
+        </nav>
       </div>
 
-      {(showForm || editingCategory) && (
-        <CategoryForm
-          category={editingCategory}
-          onSave={handleSave}
-          onCancel={() => { setShowForm(false); setEditingCategory(null) }}
-        />
-      )}
-
-      <div className="content-list">
-        <h3>カテゴリ一覧</h3>
-        {categories.map(category => (
-          <div key={category.id} className="content-item">
-            <h4>{category.name}</h4>
-            <p>{category.description || '説明なし'}</p>
-            <div className="content-actions">
-              <button onClick={() => setEditingCategory(category)}>編集</button>
-              {category.name !== '未分類' && (
-                <button onClick={() => handleDelete(category.id, category.name)}>削除</button>
-              )}
+      <div className="admin-main">
+        {(showForm || editingCategory) ? (
+          <CategoryForm
+            category={editingCategory}
+            onSave={handleSave}
+            onCancel={() => { setShowForm(false); setEditingCategory(null) }}
+          />
+        ) : (
+          <div className="content-list">
+            <div className="content-list-header">
+              <h3>カテゴリ一覧</h3>
+              <button 
+                className="btn-primary"
+                onClick={() => { setShowForm(true); setEditingCategory(null) }}
+              >
+                新規カテゴリ作成
+              </button>
             </div>
+            {categories.map(category => (
+              <div key={category.id} className="content-item">
+                <h4>{category.name}</h4>
+                <p>{category.description || '説明なし'}</p>
+                <div className="content-actions">
+                  <button onClick={() => setEditingCategory(category)}>編集</button>
+                  {category.name !== '未分類' && (
+                    <button onClick={() => handleDelete(category.id, category.name)}>削除</button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
