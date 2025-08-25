@@ -220,7 +220,8 @@ button:disabled {
 }
 
 /* Login form */
-.login-form {
+.login-form,
+.setup-form {
   max-width: 400px;
   margin: 32px auto;
   background: #ffffff;
@@ -238,11 +239,31 @@ button:disabled {
   font-weight: 400;
 }
 
-.login-form div {
+.setup-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.setup-header h1 {
+  color: #24292f;
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.setup-header p {
+  color: #656d76;
+  font-size: 16px;
+  margin: 0;
+}
+
+.login-form div,
+.setup-form div {
   margin-bottom: 16px;
 }
 
-.login-form label {
+.login-form label,
+.setup-form label {
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
@@ -251,6 +272,7 @@ button:disabled {
 }
 
 .login-form input,
+.setup-form input,
 .content-form input,
 .content-form textarea,
 .content-form select {
@@ -265,6 +287,7 @@ button:disabled {
 }
 
 .login-form input:focus,
+.setup-form input:focus,
 .content-form input:focus,
 .content-form textarea:focus,
 .content-form select:focus {

@@ -5,6 +5,11 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class SetupRequest(BaseModel):
+    email: str
+    username: str
+    password: str
+
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str

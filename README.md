@@ -72,15 +72,23 @@ sudo docker compose run --rm migrate
 - **バックエンドAPI**: http://localhost:8000
 - **API仕様書**: http://localhost:8000/docs
 
-### 3. デフォルトログイン情報
+### 3. 初期セットアップ
 
-- **メールアドレス**: admin@example.com
-- **パスワード**: password
+初回アクセス時、管理者アカウントのセットアップ画面が表示されます。
+以下の情報を入力して管理者アカウントを作成してください：
+
+- **メールアドレス**: 管理者のメールアドレス
+- **ユーザー名**: 管理者のユーザー名  
+- **パスワード**: 6文字以上のパスワード
+
+セットアップ完了後、自動的に管理画面にログインされます。
 
 ## 主要API
 
 ### 認証
 
+- `GET /auth/setup-status` - 初期セットアップ状態確認
+- `POST /auth/initial-setup` - 初期管理者作成
 - `POST /auth/login` - ログイン
 - `GET /auth/me` - ユーザー情報取得
 - `PUT /auth/profile` - プロファイル更新
@@ -156,12 +164,28 @@ SELECT * FROM content_categories;
 
 ## APIテスト例
 
+### 初期セットアップ
+
+```bash
+# セットアップ状態確認
+curl "http://localhost:8000/auth/setup-status"
+
+# 初期管理者作成
+curl -X POST "http://localhost:8000/auth/initial-setup" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com",
+    "username": "admin", 
+    "password": "your_secure_password"
+  }'
+```
+
 ### ログイン
 
 ```bash
 curl -X POST "http://localhost:8000/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "password": "password"}'
+  -d '{"email": "your_email@example.com", "password": "your_password"}'
 ```
 
 ### コンテンツ作成（要認証）

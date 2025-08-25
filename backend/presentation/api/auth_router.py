@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from infrastructure.persistence.database import get_db
 from infrastructure.persistence.models import UserModel, UserRole
 from infrastructure.auth import verify_password, create_access_token, verify_token, ACCESS_TOKEN_EXPIRE_MINUTES
-from presentation.schemas.auth_schemas import LoginRequest, LoginResponse, UserInfo
+from presentation.schemas.auth_schemas import LoginRequest, SetupRequest, LoginResponse, UserInfo
 from presentation.schemas.user_profile_schemas import UserProfileUpdate, PasswordChange, UserProfile
 
 router = APIRouter()
@@ -161,3 +161,66 @@ def change_password(
     db.commit()
     
     return {"message": "パスワードを変更しました"}
+
+@router.get("/setup-status")
+def check_setup_status(db: Session = Depends(get_db)):
+    """初期セットアップが必要かどうかをチェック"""
+    admin_count = db.query(UserModel).filter(
+        UserModel.role == UserRole.ADMIN,
+        UserModel.deleted_at.is_(None)
+    ).count()
+    
+    return {"needs_setup": admin_count == 0}
+
+@router.post("/initial-setup")
+def initial_setup(request: SetupRequest, db: Session = Depends(get_db)):
+    """初期管理者ユーザーのセットアップ"""
+    # 既に管理者がいる場合はエラー
+    admin_count = db.query(UserModel).filter(
+        UserModel.role == UserRole.ADMIN,
+        UserModel.deleted_at.is_(None)
+    ).count()
+    
+    if admin_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="管理者アカウントは既に存在しています"
+        )
+    
+    from infrastructure.auth import get_password_hash
+    
+    # メールアドレスの重複チェック
+    existing_user = db.query(UserModel).filter(
+        UserModel.email == request.email,
+        UserModel.deleted_at.is_(None)
+    ).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="このメールアドレスは既に使用されています"
+        )
+    
+    # 初期管理者ユーザーを作成
+    admin_user = UserModel(
+        username=request.username,
+        email=request.email,
+        password_hash=get_password_hash(request.password),
+        role=UserRole.ADMIN
+    )
+    
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+    
+    # ログイン用のトークンを生成
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": admin_user.email}, expires_delta=access_token_expires
+    )
+    
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        username=admin_user.username,
+        role=admin_user.role.value
+    )

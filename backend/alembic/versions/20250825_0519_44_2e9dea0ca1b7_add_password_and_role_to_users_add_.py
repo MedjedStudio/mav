@@ -39,33 +39,6 @@ def upgrade() -> None:
                server_default=sa.text('now()'),
                existing_nullable=True)
     # ### end Alembic commands ###
-    
-    # Insert initial admin user if not exists
-    # Password hash for "admin123" using bcrypt: $2b$12$K.QpUJL7rU8lG5t1YxP2U.vG3C3g3bWHFqJ0eHJwN8Z0oF8Z0.oG2
-    connection = op.get_bind()
-    
-    # Check if admin user already exists
-    result = connection.execute(
-        sa.text("SELECT COUNT(*) as count FROM users WHERE username = 'admin'")
-    ).fetchone()
-    
-    if result[0] == 0:
-        connection.execute(
-            sa.text("""
-                INSERT INTO users (username, email, password_hash, role)
-                VALUES ('admin', 'admin@example.com', '$2b$12$K.QpUJL7rU8lG5t1YxP2U.vG3C3g3bWHFqJ0eHJwN8Z0oF8Z0.oG2', 'ADMIN')
-            """)
-        )
-    else:
-        # Update existing admin user with password and role
-        connection.execute(
-            sa.text("""
-                UPDATE users 
-                SET password_hash = '$2b$12$K.QpUJL7rU8lG5t1YxP2U.vG3C3g3bWHFqJ0eHJwN8Z0oF8Z0.oG2', 
-                    role = 'ADMIN'
-                WHERE username = 'admin'
-            """)
-        )
 
 
 def downgrade() -> None:
