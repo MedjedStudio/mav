@@ -5,9 +5,9 @@
 
 set -e
 
-# .envファイルを読み込み
-if [ -f .env ]; then
-    source .env
+# フロントエンドの.envファイルを読み込み
+if [ -f frontend/.env ]; then
+    source frontend/.env
 fi
 
 echo "フロントエンドをビルドしています..."

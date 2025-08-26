@@ -432,15 +432,18 @@ EXIT;
 
 #### 3. 環境変数の設定
 
+**バックエンド環境変数：**
 ```bash
-# 環境変数テンプレートをコピー
+# backendディレクトリで環境変数を設定
+cd backend
 cp .env.example .env
 
 # 環境変数を本番用に編集
 vi .env
+cd ..
 ```
 
-**本番環境用に変更する項目：**
+**バックエンド用環境変数の変更項目：**
 ```bash
 # セキュリティ設定
 DEBUG=false
@@ -451,8 +454,22 @@ MYSQL_USER=mav_user
 MYSQL_PASSWORD=your_secure_password
 MYSQL_DATABASE=mav_db
 DATABASE_URL=mysql+pymysql://mav_user:your_secure_password@localhost:3306/mav_db
+```
 
-# ドメイン設定
+**フロントエンド環境変数：**
+```bash
+# frontendディレクトリで環境変数を設定
+cd frontend
+cp .env.example .env
+
+# 環境変数を本番用に編集
+vi .env
+cd ..
+```
+
+**フロントエンド用環境変数の変更項目：**
+```bash
+# API設定
 VITE_API_URL=https://mav.your-domain.com/api
 ```
 
@@ -476,6 +493,7 @@ pip install -r backend/requirements.txt
 
 # データベースマイグレーション実行
 cd backend
+source .env
 alembic upgrade head
 cd ..
 ```
@@ -512,12 +530,12 @@ sudo systemctl reload nginx
 #### 7. バックエンドサービスの起動
 
 ```bash
-# 環境変数を読み込み
+# バックエンドディレクトリに移動して環境変数を読み込み
+cd backend
 source .env
+source venv/bin/activate
 
 # Gunicornでバックエンドを起動
-cd backend
-source venv/bin/activate
 gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile -
 
 # またはバックグラウンドで実行
@@ -543,7 +561,7 @@ User=your-username
 Group=your-group
 WorkingDirectory=/path/to/mav/backend
 Environment=PATH=/path/to/mav/backend/venv/bin
-EnvironmentFile=/path/to/mav/.env
+EnvironmentFile=/path/to/mav/backend/.env
 ExecStart=/path/to/mav/backend/venv/bin/gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile -
 Restart=always
 
