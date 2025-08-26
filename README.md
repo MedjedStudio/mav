@@ -448,8 +448,9 @@ JWT_SECRET_KEY=secure-random-key-32-characters
 
 # データベース設定
 MYSQL_USER=mav_user
-MYSQL_PASSWORD=secure_password
+MYSQL_PASSWORD=your_secure_password
 MYSQL_DATABASE=mav_db
+DATABASE_URL=mysql+pymysql://mav_user:your_secure_password@localhost:3306/mav_db
 
 # ドメイン設定
 VITE_API_URL=https://mav.your-domain.com/api
