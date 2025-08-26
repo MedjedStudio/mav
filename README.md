@@ -1,4 +1,4 @@
-# MAV
+# mav
 
 FastAPI + React + MySQLを使用したコンテンツ管理システムです。
 
@@ -404,10 +404,10 @@ mav/
 
 #### 2. Nginxへの設定追加
 
-MAV用のNginx設定を追加します：
+mav用のNginx設定を追加します：
 
 ```bash
-# MAV用設定ファイルをコピー
+# mav用設定ファイルをコピー
 sudo cp nginx/mav.conf /etc/nginx/sites-available/mav
 
 # 設定を編集
