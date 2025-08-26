@@ -355,11 +355,21 @@ sudo kill -9 <PID>
 
 ### Docker関連の問題
 
+**開発環境：**
 ```bash
 # Docker環境クリーンアップ
 sudo docker system prune -f
 sudo docker compose down -v
 sudo docker compose up --build -d
+```
+
+**本番環境：**
+```bash
+# 本番環境の完全クリーンアップ
+sudo docker compose -f docker-compose.prod.yml down -v
+sudo docker system prune -a -f
+sudo docker compose -f docker-compose.prod.yml up --build -d
+sudo docker compose -f docker-compose.prod.yml run --rm migrate
 ```
 
 ### データベース接続エラー
