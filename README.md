@@ -459,36 +459,6 @@ sudo systemctl reload nginx
 #### 4. 本番環境でのデプロイ
 
 ```bash
-# 環境変数テンプレートをコピー
-cp .env.example .env
-
-# 環境変数を本番用に編集
-vi .env
-```
-
-**本番環境用に変更する項目：**
-```bash
-# セキュリティ設定
-DEBUG=false
-JWT_SECRET_KEY=secure-random-key-32-characters
-
-# データベースパスワード（強力なものに変更）
-MYSQL_ROOT_PASSWORD=secure-root-password
-MYSQL_PASSWORD=secure-user-password
-
-# ドメイン設定
-VITE_API_URL=http://mav.your-domain.com/api
-```
-
-**JWT秘密鍵の生成：**
-```bash
-# 秘密鍵を生成
-openssl rand -base64 32
-```
-
-#### 4. 本番環境でのデプロイ
-
-```bash
 # 本番用Docker構成で起動
 sudo docker compose -f docker-compose.prod.yml up --build -d
 
