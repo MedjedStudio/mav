@@ -20,6 +20,7 @@ mav/
 │   ├── app.py                     # FastAPIメインアプリ
 │   ├── config.py                  # アプリケーション設定
 │   ├── migrate.sh                 # データベースマイグレーションスクリプト
+│   ├── logs/                      # アプリケーションログ
 │   ├── application/               # アプリケーション層
 │   │   ├── dto/                   # データ転送オブジェクト
 │   │   ├── services/              # アプリケーションサービス
@@ -74,8 +75,9 @@ mav/
 │   └── index.html                # HTMLテンプレート
 ├── nginx/                         # Nginx設定
 │   └── mav.conf                  # 本番環境用Nginx設定
+├── systemd/                       # systemdサービス設定
+│   └── mav-backend.service       # バックエンドサービス設定
 ├── uploads/                       # アップロードファイル保存先
-├── build-frontend.sh              # フロントエンドビルドスクリプト
 ├── docker-compose.yml             # 開発環境用Docker構成
 ├── docker-compose.prod.yml        # 本番環境用Docker構成
 └── README.md                      # プロジェクト説明
@@ -545,34 +547,21 @@ gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --a
 nohup gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile - > logs/mav_backend.log 2>&1 &
 ```
 
-#### 8. systemdサービスの作成（推奨）
+#### 8. systemdサービスの設定（推奨）
 
 ```bash
-# systemdサービスファイルを作成
+# サービスファイルをコピーして環境に合わせて編集
+sudo cp systemd/mav-backend.service /etc/systemd/system/
 sudo vi /etc/systemd/system/mav-backend.service
-```
 
-**サービスファイルの内容：**
-```ini
-[Unit]
-Description=MAV Backend Service
-After=network.target mysql.service
+# 以下の項目を実際の環境に合わせて変更:
+# - User=YOUR_USERNAME -> User=actual_username
+# - Group=YOUR_USERNAME -> Group=actual_username  
+# - WorkingDirectory=/path/to/mav/backend -> WorkingDirectory=/home/username/WebProjects/mav/backend
+# - Environment=PATH=/path/to/mav/backend/venv/bin -> Environment=PATH=/home/username/WebProjects/mav/backend/venv/bin
+# - EnvironmentFile=/path/to/mav/backend/.env -> EnvironmentFile=/home/username/WebProjects/mav/backend/.env
+# - ExecStart=/path/to/mav/backend/venv/bin/gunicorn... -> ExecStart=/home/username/WebProjects/mav/backend/venv/bin/gunicorn...
 
-[Service]
-Type=exec
-User=your-username
-Group=your-group
-WorkingDirectory=/path/to/mav/backend
-Environment=PATH=/path/to/mav/backend/venv/bin
-EnvironmentFile=/path/to/mav/backend/.env
-ExecStart=/path/to/mav/backend/venv/bin/gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile -
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
 # サービスを有効化・起動
 sudo systemctl daemon-reload
 sudo systemctl enable mav-backend
@@ -580,6 +569,13 @@ sudo systemctl start mav-backend
 
 # サービス状態確認
 sudo systemctl status mav-backend
+
+# ログ確認
+sudo journalctl -u mav-backend -f
+
+# サービスの停止・再起動
+sudo systemctl stop mav-backend
+sudo systemctl restart mav-backend
 ```
 
 #### 9. 動作確認
