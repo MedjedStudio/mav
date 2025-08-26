@@ -393,7 +393,37 @@ mav/
 
 ### デプロイ手順
 
-#### 1. フロントエンドのビルド
+#### 1. 環境変数の設定
+
+```bash
+# 環境変数テンプレートをコピー
+cp .env.example .env
+
+# 環境変数を本番用に編集
+vi .env
+```
+
+**本番環境用に変更する項目：**
+```bash
+# セキュリティ設定
+DEBUG=false
+JWT_SECRET_KEY=secure-random-key-32-characters
+
+# データベースパスワード（強力なものに変更）
+MYSQL_ROOT_PASSWORD=secure-root-password
+MYSQL_PASSWORD=secure-user-password
+
+# ドメイン設定
+VITE_API_URL=https://mav.your-domain.com/api
+```
+
+**JWT秘密鍵の生成：**
+```bash
+# 秘密鍵を生成
+openssl rand -base64 32
+```
+
+#### 2. フロントエンドのビルド
 
 静的ファイルをビルドします：
 
@@ -402,7 +432,7 @@ mav/
 sudo ./build-frontend.sh
 ```
 
-#### 2. Nginxへの設定追加
+#### 3. Nginxへの設定追加
 
 mav用のNginx設定を追加します：
 

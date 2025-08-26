@@ -11,6 +11,7 @@ echo "フロントエンドをビルドしています..."
 docker run --rm \
   -v $(pwd)/frontend:/app \
   -v $(pwd)/dist:/app/dist \
+  -e VITE_API_URL="$VITE_API_URL" \
   -w /app \
   node:18-alpine sh -c "
     echo 'パッケージをインストールしています...'
