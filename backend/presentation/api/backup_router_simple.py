@@ -247,6 +247,11 @@ async def restore_backup(
                     dest_path.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(item, dest_path)
         
+        # .gitkeepファイルを確実に作成（Gitリポジトリ管理のため）
+        gitkeep_file = upload_dir / ".gitkeep"
+        if not gitkeep_file.exists():
+            gitkeep_file.touch()
+        
         return {"message": "バックアップから正常に復元されました"}
     
     except HTTPException:
