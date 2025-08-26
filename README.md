@@ -393,9 +393,6 @@ sudo docker compose run --rm migrate
 
 ```
 mav/
-├── docker-compose.prod.yml      # 本番用Docker構成
-├── backend/
-│   └── Dockerfile.prod          # 本番用Dockerファイル（Gunicorn使用）
 ├── nginx/
 │   └── mav.conf                 # Nginxリバースプロキシ設定
 └── build-frontend.sh            # フロントエンドビルドスクリプト
@@ -403,7 +400,37 @@ mav/
 
 ### デプロイ手順
 
-#### 1. 環境変数の設定
+#### 1. 必要パッケージのインストール
+
+```bash
+# システムパッケージの更新
+sudo apt update
+
+# MySQL サーバーのインストール
+sudo apt install mysql-server
+
+# MySQL セキュリティ設定
+sudo mysql_secure_installation
+
+# Python環境とその他必要なパッケージ
+sudo apt install python3 python3-pip python3-venv nodejs npm
+```
+
+#### 2. データベースの設定
+
+```bash
+# MySQLにrootでログイン
+sudo mysql
+
+# データベースとユーザーを作成
+CREATE DATABASE mav_db;
+CREATE USER 'mav_user'@'localhost' IDENTIFIED BY 'secure_password';
+GRANT ALL PRIVILEGES ON mav_db.* TO 'mav_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+#### 3. 環境変数の設定
 
 ```bash
 # 環境変数テンプレートをコピー
@@ -419,9 +446,10 @@ vi .env
 DEBUG=false
 JWT_SECRET_KEY=secure-random-key-32-characters
 
-# データベースパスワード（強力なものに変更）
-MYSQL_ROOT_PASSWORD=secure-root-password
-MYSQL_PASSWORD=secure-user-password
+# データベース設定
+MYSQL_USER=mav_user
+MYSQL_PASSWORD=secure_password
+MYSQL_DATABASE=mav_db
 
 # ドメイン設定
 VITE_API_URL=https://mav.your-domain.com/api
@@ -433,18 +461,32 @@ VITE_API_URL=https://mav.your-domain.com/api
 openssl rand -base64 32
 ```
 
-#### 2. フロントエンドのビルド
+#### 4. バックエンドの設定
 
-静的ファイルをビルドします：
+```bash
+# Python仮想環境を作成
+python3 -m venv backend/venv
+
+# 仮想環境をアクティベート
+source backend/venv/bin/activate
+
+# 依存関係をインストール
+pip install -r backend/requirements.txt
+
+# データベースマイグレーション実行
+cd backend
+alembic upgrade head
+cd ..
+```
+
+#### 5. フロントエンドのビルド
 
 ```bash
 # フロントエンドビルドスクリプトを実行
 sudo ./build-frontend.sh
 ```
 
-#### 3. Nginxへの設定追加
-
-mav用のNginx設定を追加します：
+#### 6. Nginxへの設定追加
 
 ```bash
 # mav用設定ファイルをコピー
@@ -466,35 +508,74 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-#### 4. 本番環境でのデプロイ
+#### 7. バックエンドサービスの起動
 
 ```bash
-# 本番用Docker構成で起動
-sudo docker compose -f docker-compose.prod.yml up --build -d
+# 環境変数を読み込み
+source .env
 
-# データベースマイグレーション実行
-sudo docker compose -f docker-compose.prod.yml run --rm migrate
+# Gunicornでバックエンドを起動
+cd backend
+source venv/bin/activate
+gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile -
 
-# 起動確認
-sudo docker compose -f docker-compose.prod.yml ps
+# またはバックグラウンドで実行
+nohup gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile - > /var/log/mav_backend.log 2>&1 &
 ```
 
-#### 5. 動作確認
+#### 8. systemdサービスの作成（推奨）
 
 ```bash
+# systemdサービスファイルを作成
+sudo vi /etc/systemd/system/mav-backend.service
+```
+
+**サービスファイルの内容：**
+```ini
+[Unit]
+Description=MAV Backend Service
+After=network.target mysql.service
+
+[Service]
+Type=exec
+User=your-username
+Group=your-group
+WorkingDirectory=/path/to/mav/backend
+Environment=PATH=/path/to/mav/backend/venv/bin
+EnvironmentFile=/path/to/mav/.env
+ExecStart=/path/to/mav/backend/venv/bin/gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile -
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+# サービスを有効化・起動
+sudo systemctl daemon-reload
+sudo systemctl enable mav-backend
+sudo systemctl start mav-backend
+
 # サービス状態確認
-sudo docker compose -f docker-compose.prod.yml ps
+sudo systemctl status mav-backend
+```
+
+#### 9. 動作確認
+
+```bash
+# バックエンドAPI確認
+curl -f https://mav.your-domain.com/api/auth/setup-status
+
+# サービス状態確認
+sudo systemctl status mav-backend
 
 # ログ確認
-sudo docker compose -f docker-compose.prod.yml logs backend
-
-# ヘルスチェック
-curl -f http://mav.your-domain.com/api/auth/setup-status
+sudo journalctl -u mav-backend -f
 ```
 
-#### 6. 初期セットアップ
+#### 10. 初期セットアップ
 
-ブラウザで `http://mav.your-domain.com` にアクセスし、管理者アカウントを作成してください。
+ブラウザで `https://mav.your-domain.com` にアクセスし、管理者アカウントを作成してください。
 
 ### 本番環境の特徴
 
