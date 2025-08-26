@@ -25,6 +25,12 @@ function AdminSidebar({ activeView, onViewChange }) {
           ファイル管理
         </button>
         <button 
+          className={activeView === 'backup' ? 'active' : ''}
+          onClick={() => onViewChange('backup')}
+        >
+          バックアップ管理
+        </button>
+        <button 
           className={activeView === 'profile' ? 'active' : ''}
           onClick={() => onViewChange('profile')}
         >

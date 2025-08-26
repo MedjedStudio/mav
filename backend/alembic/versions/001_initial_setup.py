@@ -27,23 +27,11 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
         sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-        sa.PrimaryKeyConstraint('id')
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('email', 'deleted_at', name='uq_email_deleted_at')
     )
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
-    op.create_index('ix_users_username', 'users', ['username'], unique=True)
-    op.create_index('ix_users_email', 'users', ['email'], unique=True)
-    
-    # Create contents table
-    op.create_table('contents',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('title', sa.String(length=255), nullable=False),
-        sa.Column('content', sa.Text(), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_contents_id'), 'contents', ['id'], unique=False)
+    op.create_index('ix_users_username', 'users', ['username'], unique=False)
     
     # Create categories table
     op.create_table('categories',
@@ -57,6 +45,33 @@ def upgrade() -> None:
         sa.UniqueConstraint('name')
     )
     op.create_index(op.f('ix_categories_id'), 'categories', ['id'], unique=False)
+    
+    # Create contents table
+    op.create_table('contents',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('title', sa.String(length=255), nullable=False),
+        sa.Column('content', sa.Text(), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_contents_id'), 'contents', ['id'], unique=False)
+    
+    # Create files table
+    op.create_table('files',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('filename', sa.String(length=255), nullable=False),
+        sa.Column('original_filename', sa.String(length=255), nullable=False),
+        sa.Column('file_size', sa.Integer(), nullable=False),
+        sa.Column('mime_type', sa.String(length=100), nullable=False),
+        sa.Column('uploaded_by', sa.Integer(), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(['uploaded_by'], ['users.id'], ),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_files_id'), 'files', ['id'], unique=False)
     
     # Create content_categories many-to-many table
     op.create_table('content_categories',
@@ -86,11 +101,12 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table('content_categories')
-    op.drop_index(op.f('ix_categories_id'), table_name='categories')
-    op.drop_table('categories')
+    op.drop_index(op.f('ix_files_id'), table_name='files')
+    op.drop_table('files')
     op.drop_index(op.f('ix_contents_id'), table_name='contents')
     op.drop_table('contents')
-    op.drop_index('ix_users_email', table_name='users')
+    op.drop_index(op.f('ix_categories_id'), table_name='categories')
+    op.drop_table('categories')
     op.drop_index('ix_users_username', table_name='users')
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_table('users')

@@ -1,0 +1,272 @@
+"""バックアップ・復元機能のAPIエンドポイント"""
+
+import os
+import json
+import zipfile
+import shutil
+from datetime import datetime
+from typing import Any, Dict
+from pathlib import Path
+import tempfile
+
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session, selectinload
+
+from infrastructure.persistence.database import get_db
+from infrastructure.persistence.models import ContentModel, CategoryModel, UserModel, UserRole
+from utils.auth_utils import get_current_user
+
+router = APIRouter(prefix="/backup", tags=["backup"])
+
+def get_upload_directory() -> str:
+    """アップロードディレクトリのパスを取得"""
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+
+def export_database_data(db: Session) -> Dict[str, Any]:
+    """データベースのデータをエクスポート"""
+    # ユーザーデータ
+    users = db.query(UserModel).all()
+    users_data = []
+    for user in users:
+        users_data.append({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "password_hash": user.password_hash,
+            "role": user.role.value,
+            "created_at": user.created_at.isoformat(),
+            "updated_at": user.updated_at.isoformat()
+        })
+    
+    # カテゴリデータ
+    categories = db.query(CategoryModel).all()
+    categories_data = []
+    for category in categories:
+        categories_data.append({
+            "id": category.id,
+            "name": category.name,
+            "description": category.description,
+            "created_at": category.created_at.isoformat(),
+            "updated_at": category.updated_at.isoformat()
+        })
+    
+    # コンテンツデータ
+    contents = db.query(ContentModel).options(selectinload(ContentModel.categories)).all()
+    contents_data = []
+    for content in contents:
+        content_categories = [cat.name for cat in content.categories]
+        contents_data.append({
+            "id": content.id,
+            "title": content.title,
+            "content": content.content,
+            "categories": content_categories,
+            "created_at": content.created_at.isoformat(),
+            "updated_at": content.updated_at.isoformat()
+        })
+    
+    return {
+        "users": users_data,
+        "categories": categories_data,
+        "contents": contents_data,
+        "exported_at": datetime.now().isoformat()
+    }
+
+@router.get("/download")
+async def download_backup(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """バックアップファイルをダウンロード"""
+    try:
+        # 一時ディレクトリを作成
+        with tempfile.TemporaryDirectory() as temp_dir:
+            backup_dir = Path(temp_dir) / "backup"
+            backup_dir.mkdir()
+            
+            # データベースデータをエクスポート
+            db_data = export_database_data(db)
+            
+            # データベースデータをJSONファイルに保存
+            db_file = backup_dir / "database.json"
+            with open(db_file, 'w', encoding='utf-8') as f:
+                json.dump(db_data, f, ensure_ascii=False, indent=2)
+            
+            # アップロードファイルをコピー
+            upload_dir = Path(get_upload_directory())
+            if upload_dir.exists():
+                uploads_backup_dir = backup_dir / "uploads"
+                shutil.copytree(upload_dir, uploads_backup_dir)
+            
+            # ZIPファイルを作成
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            zip_filename = f"mav_backup_{timestamp}.zip"
+            zip_path = Path(temp_dir) / zip_filename
+            
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for root, dirs, files in os.walk(backup_dir):
+                    for file in files:
+                        file_path = Path(root) / file
+                        arcname = file_path.relative_to(backup_dir)
+                        zipf.write(file_path, arcname)
+            
+            return FileResponse(
+                path=str(zip_path),
+                filename=zip_filename,
+                media_type='application/zip'
+            )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"バックアップの作成に失敗しました: {str(e)}")
+
+def import_database_data(db: Session, data: Dict[str, Any]) -> None:
+    """データベースにデータをインポート"""
+    # 既存のデータをクリア（外部キー制約を考慮した順序）
+    db.query(ContentModel).delete()
+    db.query(CategoryModel).delete() 
+    db.query(UserModel).delete()
+    db.commit()
+    
+    # ユーザーデータを復元
+    for user_data in data.get("users", []):
+        user = UserModel(
+            id=user_data["id"],
+            username=user_data["username"],
+            email=user_data["email"],
+            password_hash=user_data["password_hash"],
+            role=UserRole(user_data["role"]),
+            created_at=datetime.fromisoformat(user_data["created_at"]),
+            updated_at=datetime.fromisoformat(user_data["updated_at"])
+        )
+        db.add(user)
+    
+    # カテゴリデータを復元
+    categories_map = {}
+    for category_data in data.get("categories", []):
+        category = CategoryModel(
+            id=category_data["id"],
+            name=category_data["name"],
+            description=category_data["description"],
+            created_at=datetime.fromisoformat(category_data["created_at"]),
+            updated_at=datetime.fromisoformat(category_data["updated_at"])
+        )
+        db.add(category)
+        categories_map[category_data["name"]] = category
+    
+    db.commit()  # カテゴリをコミットしてからコンテンツを作成
+    
+    # コンテンツデータを復元
+    for content_data in data.get("contents", []):
+        content = ContentModel(
+            id=content_data["id"],
+            title=content_data["title"],
+            content=content_data["content"],
+            created_at=datetime.fromisoformat(content_data["created_at"]),
+            updated_at=datetime.fromisoformat(content_data["updated_at"])
+        )
+        
+        # カテゴリを関連付け
+        for cat_name in content_data.get("categories", []):
+            if cat_name in categories_map:
+                content.categories.append(categories_map[cat_name])
+        
+        db.add(content)
+    
+    db.commit()
+
+@router.post("/restore")
+async def restore_backup(
+    file: UploadFile = File(...),
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """バックアップファイルから復元"""
+    try:
+        # アップロードされたファイルがZIPかチェック
+        if not file.filename.endswith('.zip'):
+            raise HTTPException(status_code=400, detail="ZIPファイルをアップロードしてください")
+        
+        # 一時ディレクトリを作成
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # ZIPファイルを保存
+            zip_path = Path(temp_dir) / file.filename
+            with open(zip_path, 'wb') as f:
+                content = await file.read()
+                f.write(content)
+            
+            # ZIPファイルを展開
+            extract_dir = Path(temp_dir) / "extracted"
+            with zipfile.ZipFile(zip_path, 'r') as zipf:
+                zipf.extractall(extract_dir)
+            
+            # データベースファイルを読み込み
+            db_file = extract_dir / "database.json"
+            if not db_file.exists():
+                raise HTTPException(status_code=400, detail="バックアップファイルが不正です（database.jsonが見つかりません）")
+            
+            with open(db_file, 'r', encoding='utf-8') as f:
+                db_data = json.load(f)
+            
+            # データベースを復元
+            import_database_data(db, db_data)
+            
+            # アップロードファイルを復元
+            uploads_backup_dir = extract_dir / "uploads"
+            upload_dir = Path(get_upload_directory())
+            
+            # 既存のアップロードディレクトリを削除
+            if upload_dir.exists():
+                shutil.rmtree(upload_dir)
+            
+            # バックアップからアップロードディレクトリを復元
+            if uploads_backup_dir.exists():
+                shutil.copytree(uploads_backup_dir, upload_dir)
+            else:
+                # アップロードディレクトリが存在しない場合は空ディレクトリを作成
+                upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        return {"message": "バックアップから正常に復元されました"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"復元に失敗しました: {str(e)}")
+
+@router.get("/info")
+async def get_backup_info(
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """バックアップ情報を取得"""
+    try:
+        # データベース統計
+        user_count = db.query(UserModel).count()
+        category_count = db.query(CategoryModel).count()
+        content_count = db.query(ContentModel).count()
+        
+        # アップロードファイル統計
+        upload_dir = Path(get_upload_directory())
+        file_count = 0
+        total_size = 0
+        
+        if upload_dir.exists():
+            for file_path in upload_dir.rglob('*'):
+                if file_path.is_file():
+                    file_count += 1
+                    total_size += file_path.stat().st_size
+        
+        return {
+            "database": {
+                "users": user_count,
+                "categories": category_count,
+                "contents": content_count
+            },
+            "files": {
+                "count": file_count,
+                "total_size": total_size,
+                "total_size_mb": round(total_size / (1024 * 1024), 2)
+            }
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"バックアップ情報の取得に失敗しました: {str(e)}")

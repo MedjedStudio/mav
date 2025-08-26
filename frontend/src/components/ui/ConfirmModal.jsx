@@ -1,7 +1,7 @@
 import React from 'react'
 
 // 確認モーダル
-function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }) {
+function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = "削除" }) {
   if (!isOpen) return null
 
   return (
@@ -11,7 +11,7 @@ function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }) {
         <p>{message}</p>
         <div className="modal-actions">
           <button className="btn-danger" onClick={onConfirm}>
-            削除
+            {confirmText}
           </button>
           <button onClick={onCancel}>
             キャンセル

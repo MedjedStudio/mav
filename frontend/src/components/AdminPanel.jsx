@@ -7,6 +7,7 @@ import ContentForm from './admin/ContentForm'
 import CategoryForm from './admin/CategoryForm'
 import AdminProfileEdit from './admin/AdminProfileEdit'
 import FileManagement from './admin/FileManagement'
+import BackupManagement from './admin/BackupManagement'
 import ConfirmModal from './ui/ConfirmModal'
 
 // 画像抽出関数
@@ -210,6 +211,8 @@ function AdminPanel({ user, onUpdate }) {
       <div className="admin-main">
         {activeView === 'profile' ? (
           <AdminProfileEdit user={user} onUpdate={onUpdate} />
+        ) : activeView === 'backup' ? (
+          <BackupManagement />
         ) : activeView === 'files' ? (
           <FileManagement />
         ) : activeView === 'categories' ? (
