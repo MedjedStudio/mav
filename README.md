@@ -455,10 +455,13 @@ DEBUG=false
 JWT_SECRET_KEY=secure-random-key-32-characters
 
 # データベース設定
-MYSQL_USER=mav_user
-MYSQL_PASSWORD=your_secure_password
-MYSQL_DATABASE=mav_db
 DATABASE_URL=mysql+pymysql://mav_user:your_secure_password@localhost:3306/mav_db
+
+# CORS設定（本番ドメインを追加）
+CORS_ORIGINS=https://mav.your-domain.com
+
+# ファイル配信用ベースURL（HTTPS対応）
+BASE_URL=https://mav.your-domain.com
 ```
 
 **フロントエンド環境変数：**
@@ -623,13 +626,49 @@ sudo journalctl -u mav-backend -f
 # 最新コードを取得
 git pull
 
-# サービス更新（ダウンタイムあり）
-sudo docker compose -f docker-compose.prod.yml down
-sudo docker compose -f docker-compose.prod.yml up --build -d
+# 依存関係の更新（必要に応じて）
+cd backend
+source venv/bin/activate
+pip install -r requirements.txt
+cd ..
 
-# またはローリングアップデート
-sudo docker compose -f docker-compose.prod.yml up --build -d --no-deps backend
-sudo docker compose -f docker-compose.prod.yml up --build -d --no-deps frontend
+# フロントエンドの再ビルド
+cd frontend
+sudo ./build.sh
+cd ..
+
+# バックエンドサービスの再起動
+sudo systemctl restart mav-backend
+
+# 動作確認
+sudo systemctl status mav-backend
+curl -f https://your-domain.com/api/auth/setup-status
+```
+
+#### 環境変数の更新
+
+**HTTPS配信の問題解決：**
+Mixed Content エラーが発生する場合は、以下を確認・更新してください：
+
+```bash
+# バックエンドの環境変数を確認・更新
+cd backend
+vi .env
+
+# 以下の設定が正しく設定されているか確認
+# CORS_ORIGINS=https://your-domain.com
+# BASE_URL=https://your-domain.com
+
+# フロントエンドの環境変数を確認・更新
+cd ../frontend
+vi .env
+
+# 以下の設定が正しく設定されているか確認
+# VITE_API_URL=https://your-domain.com/api
+
+# 設定変更後は再ビルドと再起動が必要
+sudo ./build.sh
+sudo systemctl restart mav-backend
 ```
 
 

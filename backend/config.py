@@ -1,6 +1,10 @@
 """Application configuration settings."""
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class Settings:
@@ -24,13 +28,15 @@ class Settings:
     
     # CORS
     CORS_ORIGINS: list = [
-        "http://localhost:3000",
-        "http://localhost:5173", 
-        "http://localhost:8000",
-        "http://192.168.1.6:3000",
-        "http://192.168.1.6:5173",
-        "http://192.168.1.6:8000"
+        origin.strip() 
+        for origin in os.getenv("CORS_ORIGINS", 
+            "http://localhost:3000,http://localhost:5173,http://localhost:8000"
+        ).split(",") 
+        if origin.strip()
     ]
+    
+    # Base URL for file serving (本番環境用)
+    BASE_URL: str = os.getenv("BASE_URL", "")
     
     # Debug
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
