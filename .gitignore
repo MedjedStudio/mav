@@ -40,7 +40,10 @@ Thumbs.db
 
 # Logs
 *.log
-logs/
+backend/logs/*.log
+backend/logs/*.out
+!backend/logs/
+!backend/logs/.gitkeep
 
 # Node.js (Frontend)
 node_modules/
