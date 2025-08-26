@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, selectinload
 
 from infrastructure.persistence.database import get_db
-from infrastructure.persistence.models import ContentModel, CategoryModel, UserModel, UserRole
+from infrastructure.persistence.models import ContentModel, CategoryModel, UserModel, UserRole, FileModel
 from utils.auth_utils import get_current_user
 
 router = APIRouter(prefix="/backup", tags=["backup"])
@@ -65,10 +65,26 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "updated_at": content.updated_at.isoformat()
         })
     
+    # ファイルデータ
+    files = db.query(FileModel).filter(FileModel.deleted_at.is_(None)).all()
+    files_data = []
+    for file in files:
+        files_data.append({
+            "id": file.id,
+            "filename": file.filename,
+            "original_filename": file.original_filename,
+            "file_size": file.file_size,
+            "mime_type": file.mime_type,
+            "uploaded_by": file.uploaded_by,
+            "created_at": file.created_at.isoformat(),
+            "updated_at": file.updated_at.isoformat()
+        })
+    
     return {
         "users": users_data,
         "categories": categories_data,
         "contents": contents_data,
+        "files": files_data,
         "exported_at": datetime.now().isoformat()
     }
 
@@ -124,6 +140,7 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
     # 既存のデータをクリア（外部キー制約を考慮した順序）
     db.query(ContentModel).delete()
     db.query(CategoryModel).delete() 
+    db.query(FileModel).delete()
     db.query(UserModel).delete()
     db.commit()
     
@@ -171,6 +188,20 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
                 content.categories.append(categories_map[cat_name])
         
         db.add(content)
+    
+    # ファイルデータを復元
+    for file_data in data.get("files", []):
+        file_record = FileModel(
+            id=file_data["id"],
+            filename=file_data["filename"],
+            original_filename=file_data["original_filename"],
+            file_size=file_data["file_size"],
+            mime_type=file_data["mime_type"],
+            uploaded_by=file_data["uploaded_by"],
+            created_at=datetime.fromisoformat(file_data["created_at"]),
+            updated_at=datetime.fromisoformat(file_data["updated_at"])
+        )
+        db.add(file_record)
     
     db.commit()
 
