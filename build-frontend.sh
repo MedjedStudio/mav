@@ -14,7 +14,7 @@ docker run --rm \
   -w /app \
   node:18-alpine sh -c "
     echo 'パッケージをインストールしています...'
-    npm ci --only=production
+    npm ci
     
     echo 'アプリケーションをビルドしています...'
     npm run build

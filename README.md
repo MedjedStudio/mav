@@ -399,7 +399,7 @@ mav/
 
 ```bash
 # フロントエンドビルドスクリプトを実行
-./build-frontend.sh
+sudo ./build-frontend.sh
 ```
 
 #### 2. Nginxへの設定追加
