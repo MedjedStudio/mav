@@ -456,7 +456,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-#### 3. 環境変数の設定
+#### 4. 本番環境でのデプロイ
 
 ```bash
 # 環境変数テンプレートをコピー
