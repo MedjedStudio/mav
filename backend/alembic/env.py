@@ -4,9 +4,13 @@ from sqlalchemy import pool
 from alembic import context
 import os
 import sys
+from dotenv import load_dotenv
 
 # Add the parent directory to sys.path to import our models
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+# Load .env file from the same directory as this script's parent
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 from infrastructure.persistence.models import Base
 from infrastructure.persistence.database import DATABASE_URL
