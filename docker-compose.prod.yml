@@ -1,15 +1,16 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: mav-mysql
-    restart: always
+    container_name: mav-mysql-prod
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    ports:
-      - "3306:3306"
+    # セキュリティ向上のため外部ポートは公開しない
+    # ports:
+    #   - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
@@ -22,6 +23,7 @@ services:
   migrate:
     build:
       context: ./backend
+      dockerfile: Dockerfile.prod
     volumes:
       - ./backend:/app
     environment:
@@ -37,15 +39,17 @@ services:
   backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
       - ${PWD}/uploads:/app/uploads
     environment:
-      - DEBUG=true
+      - DEBUG=false
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-very-secure-secret-key-change-this-in-production-12345}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_EXPIRE_HOURS=24
     networks:
       - mav-network
     depends_on:
@@ -53,21 +57,6 @@ services:
         condition: service_completed_successfully
       mysql:
         condition: service_healthy
-
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_URL=http://192.168.1.6:8000
-    depends_on:
-      - backend
-    networks:
-      - mav-network
 
 volumes:
   mysql_data:

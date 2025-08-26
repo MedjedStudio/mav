@@ -103,10 +103,10 @@ VITE_API_URL=http://localhost:8000
 
 ```bash
 # Docker Composeで全サービスを起動
-sudo docker compose up --build -d
+sudo docker compose -f docker-compose.dev.yml up --build -d
 
 # データベースマイグレーションを実行
-sudo docker compose run --rm migrate
+sudo docker compose -f docker-compose.dev.yml run --rm migrate
 ```
 
 ### 3. アクセス
@@ -130,13 +130,13 @@ sudo docker compose run --rm migrate
 
 ```bash
 # 現在のコンテナを停止・削除（データベースも削除）
-sudo docker compose down -v
+sudo docker compose -f docker-compose.dev.yml down -v
 
 # 新しい環境で起動
-sudo docker compose up --build -d
+sudo docker compose -f docker-compose.dev.yml up --build -d
 
 # データベースマイグレーションを実行
-sudo docker compose run --rm migrate
+sudo docker compose -f docker-compose.dev.yml run --rm migrate
 ```
 
 ### 2. ブラウザでアクセス
@@ -200,40 +200,40 @@ http://localhost:3000
 
 ```bash
 # サービス起動
-sudo docker compose up -d
+sudo docker compose -f docker-compose.dev.yml up -d
 
 # ログ確認
-sudo docker compose logs backend
-sudo docker compose logs frontend
+sudo docker compose -f docker-compose.dev.yml logs backend
+sudo docker compose -f docker-compose.dev.yml logs frontend
 
 # サービス再起動
-sudo docker compose restart backend
+sudo docker compose -f docker-compose.dev.yml restart backend
 
 # 停止・削除
-sudo docker compose down
+sudo docker compose -f docker-compose.dev.yml down
 
 # 完全クリーンアップ（データベース含む）
-sudo docker compose down -v
+sudo docker compose -f docker-compose.dev.yml down -v
 ```
 
 ### データベースマイグレーション
 
 ```bash
 # マイグレーション実行
-sudo docker compose run --rm migrate
+sudo docker compose -f docker-compose.dev.yml run --rm migrate
 
 # 新しいマイグレーションファイル作成
-sudo docker compose exec backend alembic revision --autogenerate -m "Description"
+sudo docker compose -f docker-compose.dev.yml exec backend alembic revision --autogenerate -m "Description"
 
 # マイグレーション履歴確認
-sudo docker compose exec backend alembic history
+sudo docker compose -f docker-compose.dev.yml exec backend alembic history
 ```
 
 ### データベースアクセス
 
 ```bash
 # MySQL接続
-sudo docker compose exec mysql mysql -u mav_user -pmav_password mav_db
+sudo docker compose -f docker-compose.dev.yml exec mysql mysql -u mav_user -pmav_password mav_db
 
 # テーブル確認
 SHOW TABLES;
@@ -375,10 +375,233 @@ sudo docker compose run --rm migrate
 
 ## 本番環境への展開
 
-本番環境では以下の点に注意してください：
+### 本番用ファイル構成
 
-1. 環境変数の適切な設定（JWT_SECRET等）
-2. HTTPSの使用
-3. データベースのバックアップ設定
-4. ログ監視の設定
-5. リバースプロキシ（Nginx等）の設定
+プロジェクトには以下の本番用設定ファイルが含まれています：
+
+```
+mav/
+├── docker-compose.prod.yml      # 本番用Docker構成
+├── .env.prod                    # 本番用環境変数テンプレート
+├── backend/
+│   └── Dockerfile.prod          # 本番用Dockerファイル（Gunicorn使用）
+└── nginx/
+    └── nginx.conf               # Nginxリバースプロキシ設定
+```
+
+### デプロイ手順
+
+#### 1. プロジェクトのクローン
+
+```bash
+# プロジェクトをサーバーにクローン
+git clone <your-repository-url> mav
+cd mav
+```
+
+#### 2. ドメイン・DNS設定
+
+サブドメインのDNS Aレコードを設定：
+```
+mav.your-domain.com → サーバーのIPアドレス
+```
+
+#### 3. フロントエンドのビルド
+
+静的ファイルをビルドします：
+
+```bash
+# フロントエンドビルドスクリプトを実行
+./build-frontend.sh
+```
+
+#### 4. 既存Nginxへの設定追加
+
+MAV用のNginx設定を既存のNginxに追加します：
+
+```bash
+# MAV用設定ファイルをコピー
+sudo cp nginx/mav.conf /etc/nginx/sites-available/mav
+
+# 設定を編集
+sudo nano /etc/nginx/sites-available/mav
+# server_name を mav.your-actual-domain.com に変更
+# root のパスを実際のプロジェクトパスに変更
+# 例: root /home/user/mav/dist;
+
+# 設定を有効化
+sudo ln -s /etc/nginx/sites-available/mav /etc/nginx/sites-enabled/mav
+
+# 設定をテスト
+sudo nginx -t
+
+# Nginxを再読み込み
+sudo systemctl reload nginx
+```
+
+#### 5. 環境変数の設定
+
+```bash
+# 環境変数テンプレートをコピー
+cp .env.example .env
+
+# 環境変数を本番用に編集
+nano .env
+```
+
+**本番環境用に変更する項目：**
+```bash
+# セキュリティ設定
+DEBUG=false
+JWT_SECRET_KEY=secure-random-key-32-characters
+
+# データベースパスワード（強力なものに変更）
+MYSQL_ROOT_PASSWORD=secure-root-password
+MYSQL_PASSWORD=secure-user-password
+
+# ドメイン設定
+VITE_API_URL=http://mav.your-domain.com/api
+```
+
+**JWT秘密鍵の生成：**
+```bash
+# 秘密鍵を生成
+openssl rand -base64 32
+```
+
+#### 6. 本番環境でのデプロイ
+
+```bash
+# 本番用Docker構成で起動
+sudo docker compose -f docker-compose.prod.yml up --build -d
+
+# データベースマイグレーション実行
+sudo docker compose -f docker-compose.prod.yml run --rm migrate
+
+# 起動確認
+sudo docker compose -f docker-compose.prod.yml ps
+```
+
+#### 7. 動作確認
+
+```bash
+# サービス状態確認
+sudo docker compose -f docker-compose.prod.yml ps
+
+# ログ確認
+sudo docker compose -f docker-compose.prod.yml logs backend
+
+# ヘルスチェック
+curl -f http://mav.your-domain.com/api/auth/setup-status
+```
+
+#### 8. 初期セットアップ
+
+ブラウザで `http://mav.your-domain.com` にアクセスし、管理者アカウントを作成してください。
+
+### 本番環境の特徴
+
+**セキュリティ向上：**
+- MySQL外部ポート非公開
+- Nginxリバースプロキシによる保護
+- セキュリティヘッダー自動付与
+
+**パフォーマンス向上：**
+- Gunicorn + Uvicorn workers（4プロセス）
+- Gzip圧縮
+- 静的ファイルキャッシュ
+- 適切なログ設定
+
+**運用性向上：**
+- 自動再起動（restart: unless-stopped）
+- ヘルスチェック機能
+- 構造化ログ出力
+
+### 更新・メンテナンス
+
+#### アプリケーション更新
+
+```bash
+# 最新コードを取得
+git pull
+
+# サービス更新（ダウンタイムあり）
+sudo docker compose -f docker-compose.prod.yml down
+sudo docker compose -f docker-compose.prod.yml up --build -d
+
+# またはローリングアップデート
+sudo docker compose -f docker-compose.prod.yml up --build -d --no-deps backend
+sudo docker compose -f docker-compose.prod.yml up --build -d --no-deps frontend
+```
+
+#### データベースバックアップ
+
+```bash
+# バックアップ作成
+sudo docker compose -f docker-compose.prod.yml exec mysql mysqldump -u mav_user -p mav_db > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# リストア
+sudo docker compose -f docker-compose.prod.yml exec -i mysql mysql -u mav_user -p mav_db < backup_file.sql
+```
+
+#### ログ管理
+
+```bash
+# ログ確認
+sudo docker compose -f docker-compose.prod.yml logs --tail=100 -f backend
+
+# ログローテーション設定
+sudo nano /etc/logrotate.d/docker
+```
+
+
+### 監視・運用
+
+#### 基本的な監視コマンド
+
+```bash
+# システムリソース確認
+docker stats
+
+# ディスク使用量
+df -h
+du -sh mav/
+
+# メモリ・CPU確認
+htop
+```
+
+#### トラブルシューティング
+
+```bash
+# サービス再起動
+sudo docker compose -f docker-compose.prod.yml restart backend
+
+# 完全リセット（注意：データが削除されます）
+sudo docker compose -f docker-compose.prod.yml down -v
+sudo docker compose -f docker-compose.prod.yml up --build -d
+```
+
+### セキュリティチェックリスト
+
+- [ ] JWT_SECRET_KEYを強力なランダム文字列に設定
+- [ ] データベースパスワードを強力なものに変更
+- [ ] DEBUG=falseに設定
+- [ ] ファイアウォール設定（80ポートのみ公開）
+- [ ] 定期的なシステムアップデート
+- [ ] データベースの定期バックアップ設定
+- [ ] ログ監視の設定
+
+### パフォーマンス最適化
+
+**推奨スペック：**
+- **最小**: 1vCPU, 1GB RAM, 20GB SSD
+- **推奨**: 2vCPU, 2GB RAM, 40GB SSD
+- **高負荷**: 4vCPU, 4GB RAM, 100GB SSD
+
+**Gunicornワーカー数調整：**
+```bash
+# backend/Dockerfile.prod でワーカー数を調整
+# CPUコア数 x 2 + 1 が目安
+CMD ["gunicorn", "app:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", ...]
+```
