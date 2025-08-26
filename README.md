@@ -542,7 +542,7 @@ source venv/bin/activate
 gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile -
 
 # またはバックグラウンドで実行
-nohup gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile - > /var/log/mav_backend.log 2>&1 &
+nohup gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile - > logs/mav_backend.log 2>&1 &
 ```
 
 #### 8. systemdサービスの作成（推奨）
