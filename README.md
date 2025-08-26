@@ -395,7 +395,8 @@ sudo docker compose run --rm migrate
 mav/
 ├── nginx/
 │   └── mav.conf                 # Nginxリバースプロキシ設定
-└── build-frontend.sh            # フロントエンドビルドスクリプト
+└── frontend/
+    └── build.sh                 # フロントエンドビルドスクリプト
 ```
 
 ### デプロイ手順
@@ -501,8 +502,10 @@ cd ..
 #### 5. フロントエンドのビルド
 
 ```bash
-# フロントエンドビルドスクリプトを実行
-sudo ./build-frontend.sh
+# フロントエンドディレクトリでビルドスクリプトを実行
+cd frontend
+sudo ./build.sh
+cd ..
 ```
 
 #### 6. Nginxへの設定追加
