@@ -18,7 +18,7 @@ class Settings:
     JWT_EXPIRE_HOURS: int = int(os.getenv("JWT_EXPIRE_HOURS", "24"))
     
     # File Upload
-    UPLOAD_DIR: Path = Path("/app/uploads")
+    UPLOAD_DIR: Path = Path("uploads")
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
     ALLOWED_EXTENSIONS: set = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
     
