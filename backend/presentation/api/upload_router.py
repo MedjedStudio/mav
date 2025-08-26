@@ -45,8 +45,7 @@ async def list_files(
         
         return sorted(file_list, key=lambda x: x["created_at"], reverse=True)
     except Exception as e:
-        print(f"Error in list_files: {e}")
-        return []
+        raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
 
 
 def _create_file_info(file_path: Path, uploader_name: str) -> Dict[str, Any]:

@@ -5,14 +5,14 @@ from presentation.api.auth_router import router as auth_router
 from presentation.api.content_router import router as content_router
 from presentation.api.category_router import router as category_router
 from presentation.api.upload_router import router as upload_router
-from presentation.api.backup_router_simple import router as backup_router
+from presentation.api.backup_router import router as backup_router
 from config import settings
 
 app = FastAPI(title="MAV API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|192\.168\.1\.\d+):(3000|5173|8000)",
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

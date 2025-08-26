@@ -5,12 +5,22 @@ FastAPI + React + MySQLを使用したコンテンツ管理システムです。
 
 ## 技術スタック
 
-- **バックエンド**: FastAPI + Uvicorn
+- **バックエンド**: FastAPI + Uvicorn/Gunicorn
 - **データベース**: MySQL 8.0
-- **ORM**: SQLAlchemy
+- **ORM**: SQLAlchemy + Alembic (マイグレーション)
 - **フロントエンド**: React + Vite
-- **認証**: JWT (JSON Web Token)
+- **認証**: JWT (JSON Web Token) + bcrypt
+- **本番環境**: systemd + Nginx (リバースプロキシ)
 - **開発環境**: Docker + Docker Compose
+
+## 主要機能
+
+- **コンテンツ管理**: 記事の作成・編集・削除・公開
+- **カテゴリ管理**: 記事のカテゴリ分類
+- **ファイル管理**: 画像ファイルのアップロード・管理
+- **ユーザー管理**: 管理者アカウントによるシステム管理
+- **バックアップ・復元**: 完全なシステムバックアップ機能
+- **初期セットアップ**: 初回起動時の自動セットアップ
 
 ## プロジェクト構成
 
@@ -81,47 +91,23 @@ mav/
 │   └── mav-backend.service       # バックエンドサービス設定
 ├── uploads/                       # アップロードファイル保存先
 ├── docker-compose.yml             # 開発環境用Docker構成
-├── docker-compose.prod.yml        # 本番環境用Docker構成
 └── README.md                      # プロジェクト説明
 ```
 
-## クイックスタート
+## クイックスタート（開発環境）
 
 ### 1. 環境設定
 
-まず、環境変数を設定します：
+開発環境では Docker Compose を使用します：
 
 ```bash
-# .env.exampleを.envにコピー
-cp .env.example .env
-```
+# リポジトリをクローン
+git clone <repository-url>
+cd mav
 
-`.env`ファイルを編集して、実際の環境に合わせて設定を変更してください：
+# 環境変数設定（開発環境用はデフォルトのままでOK）
+# 必要に応じて docker-compose.yml を編集
 
-```bash
-# バックエンド設定
-BACKEND_PORT=8000
-DEBUG=true
-JWT_SECRET_KEY=change-this-to-a-secure-secret-key
-
-# データベース設定
-MYSQL_ROOT_PASSWORD=change-this-password
-MYSQL_USER=mav_user
-MYSQL_PASSWORD=change-this-password
-MYSQL_DATABASE=mav_db
-
-# フロントエンド設定
-FRONTEND_PORT=3000
-VITE_API_URL=http://localhost:8000
-```
-
-注意：
-- `JWT_SECRET_KEY`、`MYSQL_ROOT_PASSWORD`、`MYSQL_PASSWORD`は実際の環境に合わせて変更してください
-- `VITE_API_URL`は実際のサーバーIPアドレスに合わせて変更してください
-
-### 2. 環境構築
-
-```bash
 # Docker Composeで全サービスを起動
 sudo docker compose up --build -d
 
@@ -129,13 +115,13 @@ sudo docker compose up --build -d
 sudo docker compose run --rm migrate
 ```
 
-### 3. アクセス
+### 2. アクセス
 
 - **フロントエンド**: http://localhost:3000
 - **バックエンドAPI**: http://localhost:8000
 - **API仕様書**: http://localhost:8000/docs
 
-### 4. 初期セットアップ
+### 3. 初期セットアップ
 
 初回アクセス時、管理者アカウントのセットアップ画面が表示されます。
 画面の指示に従って管理者アカウントを作成してください。
@@ -389,39 +375,46 @@ sudo docker compose run --rm migrate
 
 
 
-## 本番環境への展開
+## 本番環境デプロイ（Native Deployment）
+
+**注意:** 本番環境では、パフォーマンスとセキュリティを向上させるため、Docker ではなく直接システムにデプロイします。
 
 ### 本番用ファイル構成
-
-プロジェクトには以下の本番用設定ファイルが含まれています：
 
 ```
 mav/
 ├── nginx/
 │   └── mav.conf                 # Nginxリバースプロキシ設定
+├── systemd/
+│   └── mav-backend.service      # systemdサービス設定
 └── frontend/
     └── build.sh                 # フロントエンドビルドスクリプト
 ```
 
 ### デプロイ手順
 
-#### 1. 必要パッケージのインストール
+#### 1. システム準備
 
 ```bash
 # システムパッケージの更新
 sudo apt update
 
-# MySQL サーバーのインストール
-sudo apt install mysql-server
+# 必要なパッケージをインストール
+sudo apt install git mysql-server python3 python3-pip python3-venv nodejs npm nginx
 
 # MySQL セキュリティ設定
 sudo mysql_secure_installation
-
-# Python環境とその他必要なパッケージ
-sudo apt install python3 python3-pip python3-venv nodejs npm
 ```
 
-#### 2. データベースの設定
+#### 2. プロジェクトの取得
+
+```bash
+# プロジェクトをクローン
+git clone <repository-url> /var/source/mav
+cd /var/source/mav
+```
+
+#### 3. データベースの設定
 
 ```bash
 # MySQLにrootでログイン
@@ -435,7 +428,7 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-#### 3. 環境変数の設定
+#### 4. 環境変数の設定
 
 **バックエンド環境変数：**
 ```bash
@@ -487,7 +480,7 @@ VITE_API_URL=https://mav.your-domain.com/api
 openssl rand -base64 32
 ```
 
-#### 4. バックエンドの設定
+#### 5. バックエンドの設定
 
 ```bash
 # Python仮想環境を作成
@@ -506,7 +499,7 @@ alembic upgrade head
 cd ..
 ```
 
-#### 5. フロントエンドのビルド
+#### 6. フロントエンドのビルド
 
 ```bash
 # フロントエンドディレクトリでビルドスクリプトを実行
@@ -515,7 +508,7 @@ sudo ./build.sh
 cd ..
 ```
 
-#### 6. Nginxへの設定追加
+#### 7. Nginxへの設定追加
 
 ```bash
 # mav用設定ファイルをコピー
@@ -545,27 +538,25 @@ cd backend
 source .env
 source venv/bin/activate
 
-# Gunicornでバックエンドを起動
-gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile -
+# Gunicornでバックエンドを起動（手動起動の場合）
+gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile logs/access.log --error-logfile logs/error.log
 
-# またはバックグラウンドで実行
-nohup gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile - --error-logfile - > logs/mav_backend.log 2>&1 &
+# 手動でバックグラウンド実行する場合（systemdを使わない場合のみ）
+nohup gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --access-logfile logs/access.log --error-logfile logs/error.log > logs/mav_backend.log 2>&1 &
 ```
 
 #### 8. systemdサービスの設定（推奨）
+
+systemdを使用することで、自動起動・自動復旧・ログ管理が簡単になります。
 
 ```bash
 # サービスファイルをコピーして環境に合わせて編集
 sudo cp systemd/mav-backend.service /etc/systemd/system/
 sudo vi /etc/systemd/system/mav-backend.service
 
-# 以下の項目を実際の環境に合わせて変更:
-# - User=YOUR_USERNAME -> User=actual_username
-# - Group=YOUR_USERNAME -> Group=actual_username  
-# - WorkingDirectory=/path/to/mav/backend -> WorkingDirectory=/home/username/WebProjects/mav/backend
-# - Environment=PATH=/path/to/mav/backend/venv/bin -> Environment=PATH=/home/username/WebProjects/mav/backend/venv/bin
-# - EnvironmentFile=/path/to/mav/backend/.env -> EnvironmentFile=/home/username/WebProjects/mav/backend/.env
-# - ExecStart=/path/to/mav/backend/venv/bin/gunicorn... -> ExecStart=/home/username/WebProjects/mav/backend/venv/bin/gunicorn...
+# 以下のプレースホルダーを実際の値に変更:
+# - YOUR_USERNAME -> 実際のユーザー名（例：ubuntu）
+# - /path/to/mav/backend -> 実際のプロジェクトパス（例：/var/source/mav/backend）
 
 # サービスを有効化・起動
 sudo systemctl daemon-reload
@@ -574,12 +565,22 @@ sudo systemctl start mav-backend
 
 # サービス状態確認
 sudo systemctl status mav-backend
+```
 
-# ログ確認
+**systemdサービスの管理コマンド：**
+```bash
+# ログ確認（リアルタイム）
 sudo journalctl -u mav-backend -f
 
 # サービスの停止・再起動
 sudo systemctl stop mav-backend
+sudo systemctl restart mav-backend
+
+# サービスの無効化（自動起動を停止）
+sudo systemctl disable mav-backend
+
+# サービス設定の再読み込み（設定変更後）
+sudo systemctl daemon-reload
 sudo systemctl restart mav-backend
 ```
 
