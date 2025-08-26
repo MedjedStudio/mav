@@ -19,7 +19,10 @@ function Header({ user, onLogout, onHomeClick }) {
   return (
     <header className="header">
       <div className="header-container">
-        <h1 className="header-title" onClick={onHomeClick}>MAV</h1>
+        <h1 className="header-title" onClick={onHomeClick}>
+          <img src="/medjed.png" alt="mav" className="header-icon" />
+          mav
+        </h1>
         <div className="auth-section">
           {user && (
             <div className="user-menu">
