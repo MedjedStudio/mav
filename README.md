@@ -34,35 +34,67 @@ FastAPI + React + MySQLを使用したコンテンツ管理システムです。
 mav/
 ├── backend/                        # FastAPI アプリケーション
 │   ├── app.py                     # FastAPIメインアプリ
+│   ├── config.py                  # アプリケーション設定
+│   ├── migrate.sh                 # データベースマイグレーションスクリプト
+│   ├── application/               # アプリケーション層
+│   │   ├── dto/                   # データ転送オブジェクト
+│   │   ├── services/              # アプリケーションサービス
+│   │   └── use_cases/             # ユースケース
+│   ├── domain/                    # ドメイン層
+│   │   ├── entities/              # エンティティ
+│   │   ├── repositories/          # リポジトリインターフェース
+│   │   └── value_objects/         # 値オブジェクト
 │   ├── infrastructure/            # インフラストラクチャ層
-│   │   └── persistence/          # データベース関連
-│   │       ├── database.py       # DB接続設定
-│   │       └── models.py         # SQLAlchemyモデル
-│   ├── presentation/             # プレゼンテーション層
-│   │   ├── api/                  # APIルーター
-│   │   │   ├── auth_router.py    # 認証API
-│   │   │   ├── content_router.py # コンテンツAPI
-│   │   │   ├── category_router.py# カテゴリAPI
-│   │   │   └── upload_router.py  # ファイルアップロードAPI
-│   │   └── schemas/              # リクエスト/レスポンススキーマ
-│   │       ├── auth_schemas.py   # 認証スキーマ
-│   │       ├── content_schemas.py# コンテンツスキーマ
-│   │       └── category_schemas.py# カテゴリスキーマ
-│   ├── alembic/                  # データベースマイグレーション
-│   ├── requirements.txt          # Python依存関係
-│   └── Dockerfile               # バックエンド用Docker設定
-├── frontend/                     # React アプリケーション
+│   │   ├── auth.py                # 認証インフラ
+│   │   ├── persistence/           # データベース関連
+│   │   │   ├── database.py        # DB接続設定
+│   │   │   └── models.py          # SQLAlchemyモデル
+│   │   └── repositories/          # リポジトリ実装
+│   ├── presentation/              # プレゼンテーション層
+│   │   ├── api/                   # APIルーター
+│   │   │   ├── auth_router.py     # 認証API
+│   │   │   ├── backup_router.py   # バックアップAPI
+│   │   │   ├── category_router.py # カテゴリAPI
+│   │   │   ├── content_router.py  # コンテンツAPI
+│   │   │   ├── upload_router.py   # ファイルアップロードAPI
+│   │   │   └── user_router.py     # ユーザーAPI
+│   │   └── schemas/               # リクエスト/レスポンススキーマ
+│   │       ├── auth_schemas.py    # 認証スキーマ
+│   │       ├── category_schemas.py# カテゴリスキーマ
+│   │       ├── content_schemas.py # コンテンツスキーマ
+│   │       └── user_schemas.py    # ユーザースキーマ
+│   ├── utils/                     # ユーティリティ
+│   │   ├── auth_utils.py          # 認証ユーティリティ
+│   │   ├── file_utils.py          # ファイルユーティリティ
+│   │   └── response_utils.py      # レスポンスユーティリティ
+│   ├── alembic/                   # データベースマイグレーション
+│   ├── requirements.txt           # Python依存関係
+│   ├── Dockerfile.dev             # 開発環境用Docker設定
+│   └── Dockerfile.prod            # 本番環境用Docker設定
+├── frontend/                      # React アプリケーション
 │   ├── src/
-│   │   ├── App.jsx              # メインコンポーネント
-│   │   ├── App.css              # スタイル
-│   │   └── main.jsx             # エントリーポイント
-│   ├── package.json             # Node.js依存関係
-│   ├── vite.config.js           # Vite設定
-│   ├── Dockerfile              # フロントエンド用Docker設定
-│   └── index.html              # HTMLテンプレート
-├── uploads/                   # アップロードファイル保存先
-├── docker-compose.yml          # 開発環境用Docker構成
-└── README.md                   # プロジェクト説明
+│   │   ├── App.jsx               # メインコンポーネント
+│   │   ├── App.css               # スタイル
+│   │   ├── main.jsx              # エントリーポイント
+│   │   ├── components/           # Reactコンポーネント
+│   │   │   ├── admin/            # 管理画面コンポーネント
+│   │   │   ├── forms/            # フォームコンポーネント
+│   │   │   └── ui/               # UIコンポーネント
+│   │   ├── services/             # APIサービス
+│   │   │   ├── api.js            # API通信
+│   │   │   └── auth.js           # 認証サービス
+│   │   └── utils/                # ユーティリティ
+│   ├── package.json              # Node.js依存関係
+│   ├── vite.config.js            # Vite設定
+│   ├── Dockerfile.dev            # 開発環境用Docker設定
+│   └── index.html                # HTMLテンプレート
+├── nginx/                         # Nginx設定
+│   └── mav.conf                  # 本番環境用Nginx設定
+├── uploads/                       # アップロードファイル保存先
+├── build-frontend.sh              # フロントエンドビルドスクリプト
+├── docker-compose.yml             # 開発環境用Docker構成
+├── docker-compose.prod.yml        # 本番環境用Docker構成
+└── README.md                      # プロジェクト説明
 ```
 
 ## クイックスタート
@@ -382,31 +414,16 @@ sudo docker compose run --rm migrate
 ```
 mav/
 ├── docker-compose.prod.yml      # 本番用Docker構成
-├── .env.prod                    # 本番用環境変数テンプレート
 ├── backend/
 │   └── Dockerfile.prod          # 本番用Dockerファイル（Gunicorn使用）
-└── nginx/
-    └── nginx.conf               # Nginxリバースプロキシ設定
+├── nginx/
+│   └── mav.conf                 # Nginxリバースプロキシ設定
+└── build-frontend.sh            # フロントエンドビルドスクリプト
 ```
 
 ### デプロイ手順
 
-#### 1. プロジェクトのクローン
-
-```bash
-# プロジェクトをサーバーにクローン
-git clone <your-repository-url> mav
-cd mav
-```
-
-#### 2. ドメイン・DNS設定
-
-サブドメインのDNS Aレコードを設定：
-```
-mav.your-domain.com → サーバーのIPアドレス
-```
-
-#### 3. フロントエンドのビルド
+#### 1. フロントエンドのビルド
 
 静的ファイルをビルドします：
 
@@ -415,16 +432,16 @@ mav.your-domain.com → サーバーのIPアドレス
 ./build-frontend.sh
 ```
 
-#### 4. 既存Nginxへの設定追加
+#### 2. Nginxへの設定追加
 
-MAV用のNginx設定を既存のNginxに追加します：
+MAV用のNginx設定を追加します：
 
 ```bash
 # MAV用設定ファイルをコピー
 sudo cp nginx/mav.conf /etc/nginx/sites-available/mav
 
 # 設定を編集
-sudo nano /etc/nginx/sites-available/mav
+sudo vi /etc/nginx/sites-available/mav
 # server_name を mav.your-actual-domain.com に変更
 # root のパスを実際のプロジェクトパスに変更
 # 例: root /home/user/mav/dist;
@@ -439,14 +456,14 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-#### 5. 環境変数の設定
+#### 3. 環境変数の設定
 
 ```bash
 # 環境変数テンプレートをコピー
 cp .env.example .env
 
 # 環境変数を本番用に編集
-nano .env
+vi .env
 ```
 
 **本番環境用に変更する項目：**
@@ -469,7 +486,7 @@ VITE_API_URL=http://mav.your-domain.com/api
 openssl rand -base64 32
 ```
 
-#### 6. 本番環境でのデプロイ
+#### 4. 本番環境でのデプロイ
 
 ```bash
 # 本番用Docker構成で起動
@@ -482,7 +499,7 @@ sudo docker compose -f docker-compose.prod.yml run --rm migrate
 sudo docker compose -f docker-compose.prod.yml ps
 ```
 
-#### 7. 動作確認
+#### 5. 動作確認
 
 ```bash
 # サービス状態確認
@@ -495,7 +512,7 @@ sudo docker compose -f docker-compose.prod.yml logs backend
 curl -f http://mav.your-domain.com/api/auth/setup-status
 ```
 
-#### 8. 初期セットアップ
+#### 6. 初期セットアップ
 
 ブラウザで `http://mav.your-domain.com` にアクセスし、管理者アカウントを作成してください。
 
@@ -534,63 +551,7 @@ sudo docker compose -f docker-compose.prod.yml up --build -d --no-deps backend
 sudo docker compose -f docker-compose.prod.yml up --build -d --no-deps frontend
 ```
 
-#### データベースバックアップ
 
-```bash
-# バックアップ作成
-sudo docker compose -f docker-compose.prod.yml exec mysql mysqldump -u mav_user -p mav_db > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# リストア
-sudo docker compose -f docker-compose.prod.yml exec -i mysql mysql -u mav_user -p mav_db < backup_file.sql
-```
-
-#### ログ管理
-
-```bash
-# ログ確認
-sudo docker compose -f docker-compose.prod.yml logs --tail=100 -f backend
-
-# ログローテーション設定
-sudo nano /etc/logrotate.d/docker
-```
-
-
-### 監視・運用
-
-#### 基本的な監視コマンド
-
-```bash
-# システムリソース確認
-docker stats
-
-# ディスク使用量
-df -h
-du -sh mav/
-
-# メモリ・CPU確認
-htop
-```
-
-#### トラブルシューティング
-
-```bash
-# サービス再起動
-sudo docker compose -f docker-compose.prod.yml restart backend
-
-# 完全リセット（注意：データが削除されます）
-sudo docker compose -f docker-compose.prod.yml down -v
-sudo docker compose -f docker-compose.prod.yml up --build -d
-```
-
-### セキュリティチェックリスト
-
-- [ ] JWT_SECRET_KEYを強力なランダム文字列に設定
-- [ ] データベースパスワードを強力なものに変更
-- [ ] DEBUG=falseに設定
-- [ ] ファイアウォール設定（80ポートのみ公開）
-- [ ] 定期的なシステムアップデート
-- [ ] データベースの定期バックアップ設定
-- [ ] ログ監視の設定
 
 ### パフォーマンス最適化
 
