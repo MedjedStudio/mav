@@ -69,8 +69,10 @@ mav/
 │   │   │   ├── api.js            # API通信
 │   │   │   └── auth.js           # 認証サービス
 │   │   └── utils/                # ユーティリティ
+│   ├── dist/                     # ビルド成果物（本番用静的ファイル）
 │   ├── package.json              # Node.js依存関係
 │   ├── vite.config.js            # Vite設定
+│   ├── build.sh                  # フロントエンドビルドスクリプト
 │   ├── Dockerfile.dev            # 開発環境用Docker設定
 │   └── index.html                # HTMLテンプレート
 ├── nginx/                         # Nginx設定
@@ -520,7 +522,7 @@ sudo cp nginx/mav.conf /etc/nginx/sites-available/mav
 sudo vi /etc/nginx/sites-available/mav
 # server_name を mav.your-actual-domain.com に変更
 # root のパスを実際のプロジェクトパスに変更
-# 例: root /home/user/mav/dist;
+# 例: root /home/user/mav/frontend/dist;
 
 # 設定を有効化
 sudo ln -s /etc/nginx/sites-available/mav /etc/nginx/sites-enabled/mav

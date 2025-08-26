@@ -16,7 +16,6 @@ echo "VITE_API_URL: $VITE_API_URL"
 # Dockerを使用してフロントエンドをビルド
 docker run --rm \
   -v $(pwd):/app \
-  -v $(pwd)/../dist:/app/dist \
   -e VITE_API_URL="$VITE_API_URL" \
   -w /app \
   node:18-alpine sh -c "
@@ -30,11 +29,11 @@ docker run --rm \
   "
 
 # ビルド結果の確認
-if [ -d "../dist" ] && [ "$(ls -A ../dist)" ]; then
+if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
     echo "[SUCCESS] フロントエンドのビルドが完了しました"
-    echo "[INFO] 静的ファイルは ../dist ディレクトリに生成されました"
+    echo "[INFO] 静的ファイルは frontend/dist ディレクトリに生成されました"
     echo "[INFO] ファイルサイズ:"
-    du -sh ../dist/*
+    du -sh dist/*
 else
     echo "[ERROR] ビルドに失敗しました"
     exit 1
