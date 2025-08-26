@@ -13,7 +13,7 @@ class Settings:
     )
     
     # JWT
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-this-in-production")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = int(os.getenv("JWT_EXPIRE_HOURS", "24"))
     
@@ -33,7 +33,12 @@ class Settings:
     ]
     
     # Debug
-    DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+    
+    def __post_init__(self):
+        """Validate required settings."""
+        if not self.JWT_SECRET_KEY:
+            raise ValueError("JWT_SECRET_KEY environment variable is required")
 
 
 # Global settings instance
