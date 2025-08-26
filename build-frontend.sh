@@ -5,7 +5,13 @@
 
 set -e
 
+# .envファイルを読み込み
+if [ -f .env ]; then
+    source .env
+fi
+
 echo "フロントエンドをビルドしています..."
+echo "VITE_API_URL: $VITE_API_URL"
 
 # Dockerを使用してフロントエンドをビルド
 docker run --rm \
