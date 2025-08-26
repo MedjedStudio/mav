@@ -24,11 +24,11 @@ docker run --rm \
 
 # ビルド結果の確認
 if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
-    echo "✅ フロントエンドのビルドが完了しました"
-    echo "📁 静的ファイルは ./dist ディレクトリに生成されました"
-    echo "📊 ファイルサイズ:"
+    echo "[SUCCESS] フロントエンドのビルドが完了しました"
+    echo "[INFO] 静的ファイルは ./dist ディレクトリに生成されました"
+    echo "[INFO] ファイルサイズ:"
     du -sh dist/*
 else
-    echo "❌ ビルドに失敗しました"
+    echo "[ERROR] ビルドに失敗しました"
     exit 1
 fi

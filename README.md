@@ -103,10 +103,10 @@ VITE_API_URL=http://localhost:8000
 
 ```bash
 # Docker Composeで全サービスを起動
-sudo docker compose -f docker-compose.dev.yml up --build -d
+sudo docker compose up --build -d
 
 # データベースマイグレーションを実行
-sudo docker compose -f docker-compose.dev.yml run --rm migrate
+sudo docker compose run --rm migrate
 ```
 
 ### 3. アクセス
@@ -130,13 +130,13 @@ sudo docker compose -f docker-compose.dev.yml run --rm migrate
 
 ```bash
 # 現在のコンテナを停止・削除（データベースも削除）
-sudo docker compose -f docker-compose.dev.yml down -v
+sudo docker compose down -v
 
 # 新しい環境で起動
-sudo docker compose -f docker-compose.dev.yml up --build -d
+sudo docker compose up --build -d
 
 # データベースマイグレーションを実行
-sudo docker compose -f docker-compose.dev.yml run --rm migrate
+sudo docker compose run --rm migrate
 ```
 
 ### 2. ブラウザでアクセス
@@ -200,40 +200,40 @@ http://localhost:3000
 
 ```bash
 # サービス起動
-sudo docker compose -f docker-compose.dev.yml up -d
+sudo docker compose up -d
 
 # ログ確認
-sudo docker compose -f docker-compose.dev.yml logs backend
-sudo docker compose -f docker-compose.dev.yml logs frontend
+sudo docker compose logs backend
+sudo docker compose logs frontend
 
 # サービス再起動
-sudo docker compose -f docker-compose.dev.yml restart backend
+sudo docker compose restart backend
 
 # 停止・削除
-sudo docker compose -f docker-compose.dev.yml down
+sudo docker compose down
 
 # 完全クリーンアップ（データベース含む）
-sudo docker compose -f docker-compose.dev.yml down -v
+sudo docker compose down -v
 ```
 
 ### データベースマイグレーション
 
 ```bash
 # マイグレーション実行
-sudo docker compose -f docker-compose.dev.yml run --rm migrate
+sudo docker compose run --rm migrate
 
 # 新しいマイグレーションファイル作成
-sudo docker compose -f docker-compose.dev.yml exec backend alembic revision --autogenerate -m "Description"
+sudo docker compose exec backend alembic revision --autogenerate -m "Description"
 
 # マイグレーション履歴確認
-sudo docker compose -f docker-compose.dev.yml exec backend alembic history
+sudo docker compose exec backend alembic history
 ```
 
 ### データベースアクセス
 
 ```bash
 # MySQL接続
-sudo docker compose -f docker-compose.dev.yml exec mysql mysql -u mav_user -pmav_password mav_db
+sudo docker compose exec mysql mysql -u mav_user -pmav_password mav_db
 
 # テーブル確認
 SHOW TABLES;
