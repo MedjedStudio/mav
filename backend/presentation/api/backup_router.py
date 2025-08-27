@@ -22,7 +22,8 @@ router = APIRouter(prefix="/backup", tags=["backup"])
 
 def get_upload_directory() -> str:
     """アップロードディレクトリのパスを取得"""
-    return "/app/uploads"
+    from config import settings
+    return str(settings.UPLOAD_DIR)
 
 def export_database_data(db: Session) -> Dict[str, Any]:
     """データベースのデータをエクスポート"""
