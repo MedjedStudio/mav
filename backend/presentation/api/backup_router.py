@@ -38,7 +38,8 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "password_hash": user.password_hash,
             "role": user.role.value,
             "created_at": user.created_at.isoformat(),
-            "updated_at": user.updated_at.isoformat()
+            "updated_at": user.updated_at.isoformat(),
+            "deleted_at": user.deleted_at.isoformat() if user.deleted_at else None
         })
     
     # カテゴリデータ
@@ -50,7 +51,8 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "name": category.name,
             "description": category.description,
             "created_at": category.created_at.isoformat(),
-            "updated_at": category.updated_at.isoformat()
+            "updated_at": category.updated_at.isoformat(),
+            "deleted_at": category.deleted_at.isoformat() if category.deleted_at else None
         })
     
     # コンテンツデータ
@@ -65,11 +67,12 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "categories": content_categories,
             "is_published": content.is_published,
             "created_at": content.created_at.isoformat(),
-            "updated_at": content.updated_at.isoformat()
+            "updated_at": content.updated_at.isoformat(),
+            "deleted_at": content.deleted_at.isoformat() if content.deleted_at else None
         })
     
     # ファイルデータ
-    files = db.query(FileModel).filter(FileModel.deleted_at.is_(None)).all()
+    files = db.query(FileModel).all()
     files_data = []
     for file in files:
         files_data.append({
@@ -79,7 +82,8 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "file_size": file.file_size,
             "mime_type": file.mime_type,
             "uploaded_by": file.uploaded_by,
-            "created_at": file.created_at.isoformat()
+            "created_at": file.created_at.isoformat(),
+            "deleted_at": file.deleted_at.isoformat() if file.deleted_at else None
         })
     
     return {
@@ -159,7 +163,8 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             password_hash=user_data["password_hash"],
             role=UserRole(user_data["role"]),
             created_at=datetime.fromisoformat(user_data["created_at"]),
-            updated_at=datetime.fromisoformat(user_data["updated_at"])
+            updated_at=datetime.fromisoformat(user_data["updated_at"]),
+            deleted_at=datetime.fromisoformat(user_data["deleted_at"]) if user_data.get("deleted_at") else None
         )
         db.add(user)
     
@@ -171,7 +176,8 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             name=category_data["name"],
             description=category_data["description"],
             created_at=datetime.fromisoformat(category_data["created_at"]),
-            updated_at=datetime.fromisoformat(category_data["updated_at"])
+            updated_at=datetime.fromisoformat(category_data["updated_at"]),
+            deleted_at=datetime.fromisoformat(category_data["deleted_at"]) if category_data.get("deleted_at") else None
         )
         db.add(category)
         categories_map[category_data["name"]] = category
@@ -186,7 +192,8 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             content=content_data["content"],
             is_published=content_data.get("is_published", False),
             created_at=datetime.fromisoformat(content_data["created_at"]),
-            updated_at=datetime.fromisoformat(content_data["updated_at"])
+            updated_at=datetime.fromisoformat(content_data["updated_at"]),
+            deleted_at=datetime.fromisoformat(content_data["deleted_at"]) if content_data.get("deleted_at") else None
         )
         
         # カテゴリを関連付け
@@ -205,7 +212,8 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             file_size=file_data["file_size"],
             mime_type=file_data["mime_type"],
             uploaded_by=file_data["uploaded_by"],
-            created_at=datetime.fromisoformat(file_data["created_at"])
+            created_at=datetime.fromisoformat(file_data["created_at"]),
+            deleted_at=datetime.fromisoformat(file_data["deleted_at"]) if file_data.get("deleted_at") else None
         )
         db.add(file_record)
     
