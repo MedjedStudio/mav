@@ -104,8 +104,15 @@ mav/
 git clone <repository-url>
 cd mav
 
-# 環境変数設定（開発環境用はデフォルトのままでOK）
-# 必要に応じて docker-compose.yml を編集
+# バックエンド環境変数設定
+cd backend
+cp .env.example .env
+cd ..
+
+# フロントエンド環境変数設定
+cd frontend
+cp .env.example .env
+cd ..
 
 # Docker Composeで全サービスを起動
 sudo docker compose up --build -d
