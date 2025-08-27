@@ -1702,6 +1702,73 @@ button:disabled {
   box-shadow: 0 4px 16px rgba(140,149,159,0.1);
 }
 
+/* Profile display mode */
+.profile-display {
+  padding: 16px 0;
+}
+
+.profile-field {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+/* Profile display mode - higher specificity selectors */
+.profile-edit .profile-display .profile-field.profile-field-last {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.profile-edit .profile-display .profile-field .form-buttons {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+  justify-content: flex-end;
+  display: flex;
+  width: 100%;
+}
+
+.profile-edit .profile-display .form-buttons .btn-primary {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: #2d8659;
+  color: #ffffff;
+  border: 1px solid #2d8659;
+  border-radius: 6px;
+}
+
+.profile-edit .profile-display .form-buttons .btn-primary:hover {
+  background-color: #26734d;
+  border-color: #26734d;
+}
+
+.profile-field label {
+  flex-shrink: 0;
+  width: 160px;
+  margin-bottom: 0;
+  margin-right: 16px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #495057;
+  padding-top: 13px;
+}
+
+.profile-value {
+  flex: 1;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 16px;
+  color: #495057;
+  min-height: 24px;
+  line-height: 1.5;
+}
+
 .admin-main .profile-edit {
   max-width: none;
   margin: 0;
@@ -2575,6 +2642,105 @@ input:checked + .slider:before {
 
 .publish-status.unpublished {
   color: #d1242f;
+}
+
+/* User Management Styles */
+.user-management {
+  padding: 24px;
+}
+
+.user-form-container {
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.user-form {
+  max-width: 500px;
+}
+
+.user-form .form-group {
+  margin-bottom: 16px;
+}
+
+.user-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #24292f;
+}
+
+.user-form input,
+.user-form select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #ffffff;
+}
+
+.user-form input:focus,
+.user-form select:focus {
+  outline: none;
+  border-color: #0969da;
+  box-shadow: inset 0 1px 0 rgba(208, 215, 222, 0.2), 0 0 0 2px rgba(9, 105, 218, 0.3);
+}
+
+.form-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #656d76;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.role-badge.admin {
+  background-color: #fff8dc;
+  color: #bf8700;
+  border: 1px solid #d1cc71;
+}
+
+.role-badge.member {
+  background-color: #dafbe1;
+  color: #116329;
+  border: 1px solid #4ac776;
+}
+
+.user-list-container .content-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f6f8fa;
+  color: #656d76;
+  border-color: #d0d7de;
+}
+
+.user-list-container .content-actions button:disabled:hover {
+  background-color: #f6f8fa;
+  border-color: #d0d7de;
+}
+
+/* ユーザー管理テーブルのロール列 */
+.user-management .admin-content-table th:nth-child(3),
+.user-management .admin-content-table td:nth-child(3) {
+  white-space: nowrap;
+  width: 80px;
 }
 
 /* Responsive footer */

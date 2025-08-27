@@ -1,6 +1,6 @@
 
 // 確認モーダル
-function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = "削除" }) {
+function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = "削除", showCancel = true }) {
   if (!isOpen) return null
 
   return (
@@ -12,9 +12,11 @@ function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText
           <button className="btn-danger" onClick={onConfirm}>
             {confirmText}
           </button>
-          <button onClick={onCancel}>
-            キャンセル
-          </button>
+          {showCancel && (
+            <button onClick={onCancel}>
+              キャンセル
+            </button>
+          )}
         </div>
       </div>
     </div>

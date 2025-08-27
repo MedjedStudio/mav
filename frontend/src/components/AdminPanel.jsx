@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE_URL } from '../services/api'
 import { getToken } from '../utils/auth'
+import { formatDateToUserTimezone } from '../utils/timezone'
 import AdminSidebar from './admin/AdminSidebar'
 import ContentForm from './admin/ContentForm'
 import CategoryForm from './admin/CategoryForm'
 import AdminProfileEdit from './admin/AdminProfileEdit'
 import FileManagement from './admin/FileManagement'
 import BackupManagement from './admin/BackupManagement'
+import UserManagement from './admin/UserManagement'
 import ConfirmModal from './ui/ConfirmModal'
 
 // 画像抽出関数
@@ -207,6 +209,8 @@ function AdminPanel({ user, onUpdate }) {
           <AdminProfileEdit user={user} onUpdate={onUpdate} />
         ) : activeView === 'backup' ? (
           <BackupManagement />
+        ) : activeView === 'users' ? (
+          <UserManagement />
         ) : activeView === 'files' ? (
           <FileManagement />
         ) : activeView === 'categories' ? (
@@ -342,7 +346,7 @@ function AdminPanel({ user, onUpdate }) {
                       </span>
                     </td>
                     <td>
-                      {new Date(content.created_at).toLocaleDateString()}
+                      {formatDateToUserTimezone(content.created_at, user?.timezone)}
                     </td>
                     <td>
                       <div className="content-actions">

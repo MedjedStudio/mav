@@ -9,6 +9,7 @@ import PublicView from './components/PublicView'
 import { authService } from './services/auth'
 import { getToken, setToken, removeToken } from './utils/auth'
 import { updateUrl, parseContentIdFromPath } from './utils/navigation'
+import { UserProvider } from './contexts/UserContext'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -49,7 +50,13 @@ function App() {
   const checkAuth = async () => {
     try {
       const userData = await authService.checkAuth()
-      setUser({ username: userData.username, email: userData.email, role: userData.role })
+      setUser({ 
+        username: userData.username, 
+        email: userData.email, 
+        role: userData.role,
+        profile: userData.profile,
+        timezone: userData.timezone || 1
+      })
       setView('public')
     } catch (error) {
       removeToken()
@@ -115,38 +122,40 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <Header user={user} onLogout={handleLogout} onHomeClick={handleHomeClick} />
-      
-      <main className="main-content">
-        {view === 'setup' && (
-          <SetupForm onSetup={handleSetup} />
-        )}
+    <UserProvider user={user} setUser={setUser}>
+      <div className="app">
+        <Header user={user} onLogout={handleLogout} onHomeClick={handleHomeClick} />
         
-        {view === 'admin' && user?.role === 'admin' && (
-          <AdminPanel user={user} onUpdate={setUser} />
-        )}
+        <main className="main-content">
+          {view === 'setup' && (
+            <SetupForm onSetup={handleSetup} />
+          )}
+          
+          {view === 'admin' && user?.role === 'admin' && (
+            <AdminPanel user={user} onUpdate={setUser} />
+          )}
+          
+          {(view === 'public' || (user?.role !== 'admin')) && view !== 'setup' && !needsSetup && (
+            <PublicView contentId={contentId} setContentId={setContentId} resetCategory={resetCategoryTrigger} />
+          )}
+        </main>
         
-        {(view === 'public' || (user?.role !== 'admin')) && view !== 'setup' && !needsSetup && (
-          <PublicView contentId={contentId} setContentId={setContentId} resetCategory={resetCategoryTrigger} />
-        )}
-      </main>
-      
-      <Footer 
-        onLogin={() => setShowLoginModal(true)} 
-        needsSetup={needsSetup}
-        user={user}
-        onAdminClick={() => setView('admin')}
-      />
-      
-      {/* ログインモーダル */}
-      {showLoginModal && (
-        <LoginForm 
-          onLogin={handleLogin} 
-          onCancel={() => setShowLoginModal(false)} 
+        <Footer 
+          onLogin={() => setShowLoginModal(true)} 
+          needsSetup={needsSetup}
+          user={user}
+          onAdminClick={() => setView('admin')}
         />
-      )}
-    </div>
+        
+        {/* ログインモーダル */}
+        {showLoginModal && (
+          <LoginForm 
+            onLogin={handleLogin} 
+            onCancel={() => setShowLoginModal(false)} 
+          />
+        )}
+      </div>
+    </UserProvider>
   )
 }
 

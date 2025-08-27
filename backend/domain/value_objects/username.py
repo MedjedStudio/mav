@@ -17,8 +17,10 @@ class Username:
         if len(self.value) > 50:
             raise ValueError("Username must be 50 characters or less")
         
-        if not self.value.replace('_', '').replace('-', '').isalnum():
-            raise ValueError("Username can only contain letters, numbers, underscores, and hyphens")
+        # Allow letters, numbers, underscores, hyphens, and spaces
+        allowed_chars = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_- ')
+        if not all(char in allowed_chars for char in self.value):
+            raise ValueError("Username can only contain letters, numbers, underscores, hyphens, and spaces")
 
     def __str__(self) -> str:
         return self.value

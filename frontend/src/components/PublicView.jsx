@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import { API_BASE_URL } from '../services/api'
+import { formatDateToUserTimezone } from '../utils/timezone'
 import { extractFirstImage, removeFirstImage } from './AdminPanel'
+import { useUser } from '../contexts/UserContext'
 
 // 公開ビュー
 function PublicView({ contentId, setContentId, resetCategory }) {
+  const { getUserTimezone } = useUser()
   const [contents, setContents] = useState([])
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -124,7 +127,7 @@ function PublicView({ contentId, setContentId, resetCategory }) {
             <header className="content-header">
               <h1>{selectedContent.title}</h1>
               <div className="content-meta">
-                <span>投稿日: {new Date(selectedContent.created_at).toLocaleString()}</span>
+                <span>投稿日: {formatDateToUserTimezone(selectedContent.created_at, getUserTimezone())}</span>
                 <div>
                   {selectedContent.categories && selectedContent.categories.map(cat => (
                     <span key={cat} className="content-category" style={{ marginLeft: '8px' }}>
@@ -228,7 +231,7 @@ function PublicView({ contentId, setContentId, resetCategory }) {
                       })()}
                     </p>
                     <div className="card-meta">
-                      <span className="card-date">{new Date(content.created_at).toLocaleDateString()}</span>
+                      <span className="card-date">{formatDateToUserTimezone(content.created_at, getUserTimezone()).split(' ')[0]}</span>
                       <div className="card-categories">
                         {content.categories && content.categories.slice(0, 2).map(cat => (
                           <span key={cat} className="card-category">

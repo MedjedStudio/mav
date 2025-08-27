@@ -33,7 +33,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         access_token=access_token,
         token_type="bearer",
         username=user.username,
-        role=user.role.value
+        role="admin" if user.role == UserRole.ADMIN else "member"
     )
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)) -> UserModel:
@@ -79,7 +79,9 @@ def get_me(current_user: UserModel = Depends(get_current_user)):
         id=current_user.id,
         username=current_user.username,
         email=current_user.email,
-        role=current_user.role.value
+        role="admin" if current_user.role == UserRole.ADMIN else "member",
+        profile=current_user.profile,
+        timezone=current_user.timezone
     )
 
 @router.put("/profile")
@@ -121,6 +123,10 @@ def update_profile(
         current_user.username = profile_data.username
     if profile_data.email is not None:
         current_user.email = profile_data.email
+    if profile_data.profile is not None:
+        current_user.profile = profile_data.profile
+    if profile_data.timezone is not None:
+        current_user.timezone = profile_data.timezone
     
     db.commit()
     db.refresh(current_user)
@@ -130,7 +136,9 @@ def update_profile(
         "id": current_user.id,
         "username": current_user.username,
         "email": current_user.email,
-        "role": current_user.role.value
+        "role": "admin" if current_user.role == UserRole.ADMIN else "member",
+        "profile": current_user.profile,
+        "timezone": current_user.timezone
     }
     
     if email_changed:
@@ -214,5 +222,5 @@ def initial_setup(request: SetupRequest, db: Session = Depends(get_db)):
         access_token=access_token,
         token_type="bearer",
         username=admin_user.username,
-        role=admin_user.role.value
+        role="admin"
     )

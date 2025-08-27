@@ -30,6 +30,12 @@ function AdminSidebar({ activeView, onViewChange }) {
           バックアップ管理
         </button>
         <button 
+          className={activeView === 'users' ? 'active' : ''}
+          onClick={() => onViewChange('users')}
+        >
+          ユーザー管理
+        </button>
+        <button 
           className={activeView === 'profile' ? 'active' : ''}
           onClick={() => onViewChange('profile')}
         >
