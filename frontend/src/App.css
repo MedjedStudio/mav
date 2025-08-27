@@ -2769,6 +2769,13 @@ input:checked + .slider:before {
   border-color: #d0d7de;
 }
 
+/* ユーザー管理テーブルのユーザー名列 */
+.user-management .admin-content-table th:nth-child(1),
+.user-management .admin-content-table td:nth-child(1) {
+  white-space: nowrap;
+  text-align: left;
+}
+
 /* ユーザー管理テーブルのロール列 */
 .user-management .admin-content-table th:nth-child(3),
 .user-management .admin-content-table td:nth-child(3) {
