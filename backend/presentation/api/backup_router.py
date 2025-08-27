@@ -63,6 +63,7 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "title": content.title,
             "content": content.content,
             "categories": content_categories,
+            "is_published": content.is_published,
             "created_at": content.created_at.isoformat(),
             "updated_at": content.updated_at.isoformat()
         })
@@ -183,6 +184,7 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             id=content_data["id"],
             title=content_data["title"],
             content=content_data["content"],
+            is_published=content_data.get("is_published", False),
             created_at=datetime.fromisoformat(content_data["created_at"]),
             updated_at=datetime.fromisoformat(content_data["updated_at"])
         )
