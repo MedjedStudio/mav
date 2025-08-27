@@ -251,23 +251,22 @@ async def restore_backup(
             uploads_backup_dir = extract_dir / "uploads"
             upload_dir = Path(get_upload_directory())
             
-            # 既存のアップロードディレクトリの中身を削除（ディレクトリ自体は削除しない）
-            if upload_dir.exists():
-                for item in upload_dir.iterdir():
-                    if item.is_file():
-                        item.unlink()
-                    elif item.is_dir():
-                        shutil.rmtree(item)
-            else:
+            # アップロードディレクトリを作成（存在しない場合）
+            if not upload_dir.exists():
                 upload_dir.mkdir(parents=True, exist_ok=True)
             
-            # バックアップからファイルを復元
+            # バックアップからファイルを復元（既存ファイルは保持）
             if uploads_backup_dir.exists():
                 for item in uploads_backup_dir.iterdir():
                     if item.is_file():
-                        shutil.copy2(item, upload_dir / item.name)
+                        # 同名ファイルが存在しない場合のみコピー
+                        target_file = upload_dir / item.name
+                        if not target_file.exists():
+                            shutil.copy2(item, target_file)
                     elif item.is_dir():
-                        shutil.copytree(item, upload_dir / item.name)
+                        target_dir = upload_dir / item.name
+                        if not target_dir.exists():
+                            shutil.copytree(item, target_dir)
         
         return {"message": "バックアップから正常に復元されました"}
     
