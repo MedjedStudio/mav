@@ -25,7 +25,7 @@ class Settings:
         self.JWT_EXPIRE_HOURS: int = int(os.getenv("JWT_EXPIRE_HOURS") or "0")
         
         # File Upload
-        self.UPLOAD_DIR: Path = Path("/app/uploads")
+        self.UPLOAD_DIR: Path = Path(os.getenv("UPLOAD_DIR"))
         self.MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
         self.ALLOWED_EXTENSIONS: set = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
         
@@ -65,6 +65,8 @@ class Settings:
             raise ValueError("JWT_EXPIRE_HOURS environment variable is required")
         if not self.CORS_ORIGINS:
             raise ValueError("CORS_ORIGINS environment variable is required")
+        if not os.getenv("UPLOAD_DIR"):
+            raise ValueError("UPLOAD_DIR environment variable is required")
 
 
 # Global settings instance

@@ -63,6 +63,7 @@ services:
       - DEBUG=${DEBUG}
       - HOST=0.0.0.0
       - PORT=8000
+      - UPLOAD_DIR=${UPLOAD_DIR}
     networks:
       - mav-network
     depends_on:

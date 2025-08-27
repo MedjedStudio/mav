@@ -468,6 +468,9 @@ CORS_ORIGINS=https://mav.your-domain.com
 
 # フロントエンド設定
 VITE_API_URL=https://mav.your-domain.com/api
+
+# アップロード設定
+UPLOAD_DIR=/var/source/mav/uploads
 ```
 
 **重要:** 本番環境では、バックエンドアプリケーション、データベースマイグレーション、フロントエンドビルドすべてが **プロジェクトルート（mav/）の .env ファイル** を参照するように統一されています。
