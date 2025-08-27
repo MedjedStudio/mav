@@ -4,7 +4,6 @@ from sqlalchemy.sql import func
 from .database import Base
 import enum
 
-# Export Base for Alembic
 
 # 中間テーブル（コンテンツとカテゴリの多対多関係）
 content_categories = Table(

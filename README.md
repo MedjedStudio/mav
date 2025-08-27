@@ -199,6 +199,12 @@ http://localhost:3000
 - `GET /uploads/{filename}` - ファイル取得
 - `DELETE /uploads/{filename}` - ファイル削除
 
+### バックアップ・復元（管理者のみ）
+
+- `GET /backup/info` - バックアップ情報取得
+- `GET /backup/download` - バックアップファイルダウンロード
+- `POST /backup/restore` - バックアップファイルから復元
+
 ## 開発コマンド
 
 ### Docker Compose操作
@@ -464,6 +470,8 @@ CORS_ORIGINS=https://mav.your-domain.com
 VITE_API_URL=https://mav.your-domain.com/api
 ```
 
+**重要:** 本番環境では、バックエンドアプリケーション、データベースマイグレーション、フロントエンドビルドすべてが **プロジェクトルート（mav/）の .env ファイル** を参照するように統一されています。
+
 **JWT秘密鍵の生成：**
 ```bash
 # 秘密鍵を生成
@@ -484,7 +492,6 @@ pip install -r backend/requirements.txt
 
 # データベースマイグレーション実行
 cd backend
-source .env
 alembic upgrade head
 cd ..
 ```
@@ -523,9 +530,8 @@ sudo systemctl reload nginx
 #### 7. バックエンドサービスの起動
 
 ```bash
-# バックエンドディレクトリに移動して環境変数を読み込み
+# バックエンドディレクトリに移動して仮想環境を有効化
 cd backend
-source .env
 source venv/bin/activate
 
 # Gunicornでバックエンドを起動（手動起動の場合）
@@ -642,23 +648,17 @@ curl -f https://your-domain.com/api/auth/setup-status
 Mixed Content エラーが発生する場合は、以下を確認・更新してください：
 
 ```bash
-# バックエンドの環境変数を確認・更新
-cd backend
+# プロジェクトルートの環境変数を確認・更新
 vi .env
 
 # 以下の設定が正しく設定されているか確認
 # CORS_ORIGINS=https://your-domain.com
-# BASE_URL=https://your-domain.com
-
-# フロントエンドの環境変数を確認・更新
-cd ../frontend
-vi .env
-
-# 以下の設定が正しく設定されているか確認
 # VITE_API_URL=https://your-domain.com/api
 
 # 設定変更後は再ビルドと再起動が必要
+cd frontend
 sudo ./build.sh
+cd ..
 sudo systemctl restart mav-backend
 ```
 

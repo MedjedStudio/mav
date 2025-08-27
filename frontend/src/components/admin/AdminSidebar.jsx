@@ -1,4 +1,3 @@
-import React from 'react'
 
 // 管理メニューコンポーネント
 function AdminSidebar({ activeView, onViewChange }) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE_URL } from '../../services/api'
 import { getToken } from '../../utils/auth'
@@ -30,7 +30,6 @@ function BackupManagement() {
       })
       setBackupInfo(response.data)
     } catch (error) {
-      console.error('バックアップ情報の取得に失敗:', error)
       setError('バックアップ情報の取得に失敗しました')
     }
   }
@@ -51,11 +50,9 @@ function BackupManagement() {
       const contentDisposition = response.headers['content-disposition']
       let filename = 'mav_backup.zip'
       if (contentDisposition) {
-        console.log('Content-Disposition:', contentDisposition)
         const filenameMatch = contentDisposition.match(/filename="?([^";\s]+)"?/)
         if (filenameMatch) {
           filename = filenameMatch[1].replace(/"/g, '')
-          console.log('Extracted filename:', filename)
         }
       }
 
@@ -71,7 +68,6 @@ function BackupManagement() {
 
       setMessage('バックアップのダウンロードが完了しました')
     } catch (error) {
-      console.error('バックアップのダウンロードに失敗:', error)
       setError('バックアップのダウンロードに失敗しました')
     } finally {
       setIsDownloading(false)
@@ -121,7 +117,6 @@ function BackupManagement() {
       // バックアップ情報を再読み込み
       await loadBackupInfo()
     } catch (error) {
-      console.error('復元に失敗:', error)
       const errorMsg = error.response?.data?.detail || '復元に失敗しました'
       setError(errorMsg)
     } finally {

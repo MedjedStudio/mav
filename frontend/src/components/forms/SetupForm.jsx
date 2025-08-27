@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 // 初期セットアップフォーム
 function SetupForm({ onSetup }) {

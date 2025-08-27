@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 // ログインフォーム
 function LoginForm({ onLogin, onCancel }) {

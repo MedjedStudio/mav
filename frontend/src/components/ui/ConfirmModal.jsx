@@ -1,4 +1,3 @@
-import React from 'react'
 
 // 確認モーダル
 function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = "削除" }) {

@@ -61,7 +61,7 @@ def _create_file_info(file_path: Path, uploader_name: str) -> Dict[str, Any]:
         "file_size": stat.st_size,
         "mime_type": _get_mime_type(file_path),
         "url": f"/uploads/{filename}",
-        "created_at": "2025-08-25T12:00:00",  # TODO: Get actual creation time
+        "created_at": "2025-08-25T12:00:00",
         "uploader": uploader_name
     }
 

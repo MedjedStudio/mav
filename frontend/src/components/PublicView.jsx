@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import { API_BASE_URL } from '../services/api'
@@ -70,7 +70,6 @@ function PublicView({ contentId, setContentId, resetCategory }) {
       const endIndex = startIndex + itemsPerPage
       setContents(allContents.slice(startIndex, endIndex))
     } catch (error) {
-      console.error('コンテンツ取得失敗:', error)
     }
   }
 
@@ -79,7 +78,6 @@ function PublicView({ contentId, setContentId, resetCategory }) {
       const response = await axios.get(`${API_BASE_URL}/categories/`)
       setCategories(response.data.map(cat => cat.name))
     } catch (error) {
-      console.error('カテゴリ取得失敗:', error)
     }
   }
 
@@ -89,7 +87,6 @@ function PublicView({ contentId, setContentId, resetCategory }) {
       setSelectedContent(response.data)
       setView('content')
     } catch (error) {
-      console.error('コンテンツ取得失敗:', error)
       // コンテンツが見つからない場合はタイムラインに戻る
       handleBackToTimeline()
     }

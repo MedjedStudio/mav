@@ -36,7 +36,6 @@ class Settings:
             if origin.strip()
         ]
         
-        
         # Debug
         self.DEBUG: bool = (os.getenv("DEBUG") or "false").lower() == "true"
         
@@ -71,4 +70,3 @@ class Settings:
 # Global settings instance
 settings = Settings()
 
-# Note: Upload directory creation is handled by Docker volume mount

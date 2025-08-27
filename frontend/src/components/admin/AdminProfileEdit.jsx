@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { authService } from '../../services/auth'
 import { getToken, setToken } from '../../utils/auth'
 
@@ -40,7 +40,6 @@ function AdminProfileEdit({ user, onUpdate }) {
       setEmail(response.email)
       setMessage('プロファイルを更新しました')
     } catch (error) {
-      console.error('プロファイル更新失敗:', error)
       setError(error.response?.data?.detail || 'プロファイル更新に失敗しました')
     }
     setIsLoading(false)
@@ -72,7 +71,6 @@ function AdminProfileEdit({ user, onUpdate }) {
       setNewPassword('')
       setConfirmPassword('')
     } catch (error) {
-      console.error('パスワード変更失敗:', error)
       setError(error.response?.data?.detail || 'パスワード変更に失敗しました')
     }
     setIsLoading(false)

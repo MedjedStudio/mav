@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE_URL } from '../../services/api'
 import { getToken } from '../../utils/auth'
@@ -35,7 +35,6 @@ function ContentForm({ content, onSave, onCancel }) {
       const response = await axios.get(`${API_BASE_URL}/categories/`)
       setAvailableCategories(response.data)
     } catch (error) {
-      console.error('カテゴリ取得失敗:', error)
     }
   }
 
@@ -64,8 +63,7 @@ function ContentForm({ content, onSave, onCancel }) {
         }
       })
 
-      const imageUrl = `${API_BASE_URL}${response.data.url}`
-      const markdownImage = `![${response.data.original_filename}](${imageUrl})`
+      const markdownImage = `![${response.data.original_filename}](${response.data.url})`
       
       // カーソル位置にマークダウン画像を挿入
       const textarea = document.querySelector('textarea[name="content"]')
@@ -84,7 +82,6 @@ function ContentForm({ content, onSave, onCancel }) {
         setContentText(prev => prev + '\n' + markdownImage)
       }
     } catch (error) {
-      console.error('画像アップロード失敗:', error)
       alert('画像のアップロードに失敗しました')
     } finally {
       setIsUploading(false)

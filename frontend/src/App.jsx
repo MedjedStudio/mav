@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -52,7 +52,6 @@ function App() {
       setUser({ username: userData.username, email: userData.email, role: userData.role })
       setView('public')
     } catch (error) {
-      console.error('認証確認失敗:', error)
       removeToken()
     }
     setIsLoading(false)
@@ -68,7 +67,6 @@ function App() {
       setView(role === 'admin' ? 'admin' : 'public')
       return true
     } catch (error) {
-      console.error('ログイン失敗:', error)
       return false
     }
   }
@@ -81,7 +79,6 @@ function App() {
         setView('setup')
       }
     } catch (error) {
-      console.error('セットアップ状態確認失敗:', error)
     }
     setIsLoading(false)
   }
@@ -96,7 +93,6 @@ function App() {
       setView(role === 'admin' ? 'admin' : 'public')
       return true
     } catch (error) {
-      console.error('初期セットアップ失敗:', error)
       return false
     }
   }

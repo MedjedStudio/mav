@@ -1,4 +1,3 @@
-import React from 'react'
 
 function InfoModal({ isOpen, title, message, onClose }) {
   if (!isOpen) return null

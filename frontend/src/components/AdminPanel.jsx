@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE_URL } from '../services/api'
 import { getToken } from '../utils/auth'
@@ -90,7 +90,6 @@ function AdminPanel({ user, onUpdate }) {
       const endIndex = startIndex + itemsPerPage
       setContents(allContents.slice(startIndex, endIndex))
     } catch (error) {
-      console.error('コンテンツ取得失敗:', error)
     }
   }
 
@@ -112,7 +111,6 @@ function AdminPanel({ user, onUpdate }) {
       setEditingContent(null)
       setShowForm(false)
     } catch (error) {
-      console.error('保存失敗:', error)
       alert(`保存に失敗しました: ${error.response?.data?.detail || error.message}`)
     }
   }
@@ -127,7 +125,6 @@ function AdminPanel({ user, onUpdate }) {
       loadContents()
       setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })
     } catch (error) {
-      console.error('削除失敗:', error)
     }
   }
 
@@ -145,7 +142,6 @@ function AdminPanel({ user, onUpdate }) {
       const response = await axios.get(`${API_BASE_URL}/categories/`)
       setCategories(response.data)
     } catch (error) {
-      console.error('カテゴリ取得失敗:', error)
     }
   }
 
@@ -165,7 +161,6 @@ function AdminPanel({ user, onUpdate }) {
       setEditingCategory(null)
       setShowCategoryForm(false)
     } catch (error) {
-      console.error('保存失敗:', error)
       alert(error.response?.data?.detail || '保存に失敗しました')
     }
   }
@@ -179,7 +174,6 @@ function AdminPanel({ user, onUpdate }) {
       loadCategories()
       setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })
     } catch (error) {
-      console.error('削除失敗:', error)
       alert(error.response?.data?.detail || '削除に失敗しました')
     }
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_BASE_URL } from '../../services/api'
 import { getToken } from '../../utils/auth'
@@ -35,7 +35,6 @@ function FileManagement() {
       })
       setFiles(response.data)
     } catch (error) {
-      console.error('ファイル取得失敗:', error)
     } finally {
       setIsLoading(false)
     }
@@ -60,7 +59,6 @@ function FileManagement() {
           }
         })
       } catch (error) {
-        console.error('ファイルアップロード失敗:', error)
         const errorMessage = error.response?.data?.detail || error.message || '不明なエラー'
         setInfoModal({
           isOpen: true,
@@ -84,7 +82,6 @@ function FileManagement() {
       loadFiles()
       setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })
     } catch (error) {
-      console.error('削除失敗:', error)
       alert('ファイル削除に失敗しました')
     }
   }
@@ -107,7 +104,7 @@ function FileManagement() {
   }
 
   const copyToClipboard = (url) => {
-    const markdownImage = `![画像](${API_BASE_URL}${url})`
+    const markdownImage = `![画像](${url})`
     
     if (navigator.clipboard) {
       navigator.clipboard.writeText(markdownImage).then(() => {
@@ -116,8 +113,7 @@ function FileManagement() {
           title: 'コピー完了',
           message: 'マークダウン形式でクリップボードにコピーしました'
         })
-      }).catch(err => {
-        console.error('クリップボードへのコピーに失敗しました:', err)
+      }).catch(() => {
         // フォールバック: テキストエリアを使用
         fallbackCopyToClipboard(markdownImage)
       })
@@ -140,8 +136,7 @@ function FileManagement() {
         title: 'コピー完了',
         message: 'マークダウン形式でクリップボードにコピーしました'
       })
-    } catch (err) {
-      console.error('フォールバックコピーに失敗しました:', err)
+    } catch {
       setInfoModal({
         isOpen: true,
         title: 'コピー失敗',
