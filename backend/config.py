@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from project root .env file
+load_dotenv(Path(__file__).parent.parent / '.env')
 
 
 class Settings:
@@ -25,7 +25,7 @@ class Settings:
         self.JWT_EXPIRE_HOURS: int = int(os.getenv("JWT_EXPIRE_HOURS") or "0")
         
         # File Upload
-        self.UPLOAD_DIR: Path = Path("uploads")
+        self.UPLOAD_DIR: Path = Path("/app/uploads")
         self.MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
         self.ALLOWED_EXTENSIONS: set = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
         
@@ -71,5 +71,4 @@ class Settings:
 # Global settings instance
 settings = Settings()
 
-# Ensure upload directory exists
-settings.UPLOAD_DIR.mkdir(exist_ok=True)
+# Note: Upload directory creation is handled by Docker volume mount

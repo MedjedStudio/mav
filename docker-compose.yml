@@ -4,7 +4,7 @@ services:
     container_name: mav-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: root_password_for_docker
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -26,10 +26,15 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}?ssl_disabled=true
-      - MYSQL_PWD=${MYSQL_PASSWORD}
-      - DB_HOST=mysql
-      - DB_USER=${MYSQL_USER}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_EXPIRE_HOURS=${JWT_EXPIRE_HOURS}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - DEBUG=${DEBUG}
     networks:
       - mav-network
     depends_on:
@@ -47,12 +52,15 @@ services:
       - ./backend:/app
       - ${PWD}/uploads:/app/uploads
     environment:
-      - DEBUG=true
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - JWT_EXPIRE_HOURS=${JWT_EXPIRE_HOURS:-24}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost:8000}
-      - BASE_URL=${BASE_URL:-}
+      - JWT_EXPIRE_HOURS=${JWT_EXPIRE_HOURS}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - DEBUG=${DEBUG}
       - HOST=0.0.0.0
       - PORT=8000
     networks:

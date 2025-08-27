@@ -24,7 +24,7 @@ app.include_router(auth_router, prefix="/auth", tags=["認証"])
 app.include_router(content_router, prefix="/contents", tags=["コンテンツ"])
 app.include_router(category_router, prefix="/categories", tags=["カテゴリ"])
 app.include_router(upload_router, prefix="/uploads", tags=["アップロード"])
-app.include_router(backup_router, prefix="/backup", tags=["バックアップ"])
+app.include_router(backup_router, tags=["バックアップ"])
 
 # Static files are served through upload_router endpoints
 

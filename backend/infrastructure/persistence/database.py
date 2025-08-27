@@ -4,8 +4,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
-# Load .env file from the current directory
-load_dotenv()
+# Load .env file from project root directory
+from pathlib import Path
+load_dotenv(Path(__file__).parent.parent.parent.parent / '.env')
 
 # Build DATABASE_URL from individual MySQL environment variables
 MYSQL_USER = os.getenv("MYSQL_USER")

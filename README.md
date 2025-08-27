@@ -104,15 +104,8 @@ mav/
 git clone <repository-url>
 cd mav
 
-# バックエンド環境変数設定
-cd backend
+# 開発環境用環境変数を設定
 cp .env.example .env
-cd ..
-
-# フロントエンド環境変数設定
-cd frontend
-cp .env.example .env
-cd ..
 
 # Docker Composeで全サービスを起動
 sudo docker compose up --build -d
@@ -439,18 +432,16 @@ EXIT;
 
 #### 4. 環境変数の設定
 
-**バックエンド環境変数：**
+**環境変数設定：**
 ```bash
-# backendディレクトリで環境変数を設定
-cd backend
+# プロジェクトルートで環境変数を設定
 cp .env.example .env
 
 # 環境変数を本番用に編集
 vi .env
-cd ..
 ```
 
-**バックエンド用環境変数の変更項目：**
+**本番環境用環境変数の変更項目：**
 ```bash
 # セキュリティ設定
 DEBUG=false
@@ -466,24 +457,10 @@ MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_DATABASE=mav_db
 
-# CORS設定（本番ドメインを追加）
+# CORS設定（本番ドメインを設定）
 CORS_ORIGINS=https://mav.your-domain.com
-```
 
-**フロントエンド環境変数：**
-```bash
-# frontendディレクトリで環境変数を設定
-cd frontend
-cp .env.example .env
-
-# 環境変数を本番用に編集
-vi .env
-cd ..
-```
-
-**フロントエンド用環境変数の変更項目：**
-```bash
-# API設定
+# フロントエンド設定
 VITE_API_URL=https://mav.your-domain.com/api
 ```
 

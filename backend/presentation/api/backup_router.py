@@ -12,16 +12,17 @@ import tempfile
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import text
 
 from infrastructure.persistence.database import get_db
 from infrastructure.persistence.models import ContentModel, CategoryModel, UserModel, UserRole, FileModel
-from utils.auth_utils import get_current_user
+from presentation.api.auth_router import get_current_user
 
 router = APIRouter(prefix="/backup", tags=["backup"])
 
 def get_upload_directory() -> str:
     """アップロードディレクトリのパスを取得"""
-    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+    return "/app/uploads"
 
 def export_database_data(db: Session) -> Dict[str, Any]:
     """データベースのデータをエクスポート"""
@@ -76,8 +77,7 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "file_size": file.file_size,
             "mime_type": file.mime_type,
             "uploaded_by": file.uploaded_by,
-            "created_at": file.created_at.isoformat(),
-            "updated_at": file.updated_at.isoformat()
+            "created_at": file.created_at.isoformat()
         })
     
     return {
@@ -95,53 +95,57 @@ async def download_backup(
 ):
     """バックアップファイルをダウンロード"""
     try:
-        # 一時ディレクトリを作成
-        with tempfile.TemporaryDirectory() as temp_dir:
-            backup_dir = Path(temp_dir) / "backup"
-            backup_dir.mkdir()
-            
-            # データベースデータをエクスポート
-            db_data = export_database_data(db)
-            
-            # データベースデータをJSONファイルに保存
-            db_file = backup_dir / "database.json"
-            with open(db_file, 'w', encoding='utf-8') as f:
-                json.dump(db_data, f, ensure_ascii=False, indent=2)
-            
-            # アップロードファイルをコピー
-            upload_dir = Path(get_upload_directory())
-            if upload_dir.exists():
-                uploads_backup_dir = backup_dir / "uploads"
-                shutil.copytree(upload_dir, uploads_backup_dir)
-            
-            # ZIPファイルを作成
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            zip_filename = f"mav_backup_{timestamp}.zip"
-            zip_path = Path(temp_dir) / zip_filename
-            
-            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for root, dirs, files in os.walk(backup_dir):
-                    for file in files:
-                        file_path = Path(root) / file
-                        arcname = file_path.relative_to(backup_dir)
-                        zipf.write(file_path, arcname)
-            
-            return FileResponse(
-                path=str(zip_path),
-                filename=zip_filename,
-                media_type='application/zip'
-            )
+        # 一時ディレクトリを作成（自動削除しない）
+        temp_dir = tempfile.mkdtemp()
+        backup_dir = Path(temp_dir) / "backup"
+        backup_dir.mkdir()
+        
+        # データベースデータをエクスポート
+        db_data = export_database_data(db)
+        
+        # データベースデータをJSONファイルに保存
+        db_file = backup_dir / "database.json"
+        with open(db_file, 'w', encoding='utf-8') as f:
+            json.dump(db_data, f, ensure_ascii=False, indent=2)
+        
+        # アップロードファイルをコピー
+        upload_dir = Path(get_upload_directory())
+        if upload_dir.exists():
+            uploads_backup_dir = backup_dir / "uploads"
+            shutil.copytree(upload_dir, uploads_backup_dir)
+        
+        # ZIPファイルを作成
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        zip_filename = f"mav_backup_{timestamp}.zip"
+        zip_path = Path(temp_dir) / zip_filename
+        
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(backup_dir):
+                for file in files:
+                    file_path = Path(root) / file
+                    arcname = file_path.relative_to(backup_dir)
+                    zipf.write(file_path, arcname)
+        
+        return FileResponse(
+            path=str(zip_path),
+            filename=zip_filename,
+            media_type='application/zip'
+        )
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"バックアップの作成に失敗しました: {str(e)}")
 
 def import_database_data(db: Session, data: Dict[str, Any]) -> None:
     """データベースにデータをインポート"""
-    # 既存のデータをクリア（外部キー制約を考慮した順序）
-    db.query(ContentModel).delete()
-    db.query(CategoryModel).delete() 
-    db.query(FileModel).delete()
-    db.query(UserModel).delete()
+    # 既存のデータをクリア（外部キー制約を考慮した正しい順序）
+    # 1. 中間テーブルを直接削除
+    db.execute(text("DELETE FROM content_categories"))
+    # 2. 外部キーを持つ子テーブルから削除
+    db.query(FileModel).delete()  # files（users.idを参照）
+    db.query(ContentModel).delete()  # contents
+    # 3. 参照される側のテーブル
+    db.query(CategoryModel).delete()  # categories
+    db.query(UserModel).delete()  # users
     db.commit()
     
     # ユーザーデータを復元
@@ -198,8 +202,7 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             file_size=file_data["file_size"],
             mime_type=file_data["mime_type"],
             uploaded_by=file_data["uploaded_by"],
-            created_at=datetime.fromisoformat(file_data["created_at"]),
-            updated_at=datetime.fromisoformat(file_data["updated_at"])
+            created_at=datetime.fromisoformat(file_data["created_at"])
         )
         db.add(file_record)
     
@@ -245,16 +248,23 @@ async def restore_backup(
             uploads_backup_dir = extract_dir / "uploads"
             upload_dir = Path(get_upload_directory())
             
-            # 既存のアップロードディレクトリを削除
+            # 既存のアップロードディレクトリの中身を削除（ディレクトリ自体は削除しない）
             if upload_dir.exists():
-                shutil.rmtree(upload_dir)
-            
-            # バックアップからアップロードディレクトリを復元
-            if uploads_backup_dir.exists():
-                shutil.copytree(uploads_backup_dir, upload_dir)
+                for item in upload_dir.iterdir():
+                    if item.is_file():
+                        item.unlink()
+                    elif item.is_dir():
+                        shutil.rmtree(item)
             else:
-                # アップロードディレクトリが存在しない場合は空ディレクトリを作成
                 upload_dir.mkdir(parents=True, exist_ok=True)
+            
+            # バックアップからファイルを復元
+            if uploads_backup_dir.exists():
+                for item in uploads_backup_dir.iterdir():
+                    if item.is_file():
+                        shutil.copy2(item, upload_dir / item.name)
+                    elif item.is_dir():
+                        shutil.copytree(item, upload_dir / item.name)
         
         return {"message": "バックアップから正常に復元されました"}
     
