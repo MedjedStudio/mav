@@ -10,6 +10,7 @@ function ContentForm({ content, onSave, onCancel }) {
   const [contentText, setContentText] = useState(content?.content || '')
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([])
   const [availableCategories, setAvailableCategories] = useState([])
+  const [isPublished, setIsPublished] = useState(content?.is_published || false)
   const [isUploading, setIsUploading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
@@ -91,36 +92,35 @@ function ContentForm({ content, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSave({ title, content: contentText, category_ids: selectedCategoryIds })
+    onSave({ title, content: contentText, category_ids: selectedCategoryIds, is_published: isPublished })
   }
 
   return (
     <div className="content-form">
       <h3>{content ? 'コンテンツ編集' : '新規コンテンツ作成'}</h3>
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>タイトル:</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>カテゴリ:</label>
-          <div className="category-checkboxes">
-            {availableCategories.map(cat => (
-              <div key={cat.id} className="checkbox-item">
+        <div className="title-publish-row">
+          <div className="title-section">
+            <label>タイトル:</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+          <div className="publish-section">
+            <div className="publish-toggle">
+              <label className="switch">
                 <input
                   type="checkbox"
-                  id={`category-${cat.id}`}
-                  checked={selectedCategoryIds.includes(cat.id)}
-                  onChange={() => handleCategoryChange(cat.id)}
+                  checked={isPublished}
+                  onChange={(e) => setIsPublished(e.target.checked)}
                 />
-                <label htmlFor={`category-${cat.id}`}>{cat.name}</label>
-              </div>
-            ))}
+                <span className="slider"></span>
+              </label>
+              <span className="publish-status">{isPublished ? '公開' : '非公開'}</span>
+            </div>
           </div>
         </div>
         <div>
@@ -193,6 +193,22 @@ function ContentForm({ content, onSave, onCancel }) {
                 />
               </label>
               <small>JPG, PNG, GIF, WebP対応（最大10MB）</small>
+            </div>
+            <div className="category-section">
+              <label>カテゴリ:</label>
+              <div className="category-checkboxes">
+                {availableCategories.map(cat => (
+                  <div key={cat.id} className="checkbox-item">
+                    <input
+                      type="checkbox"
+                      id={`category-${cat.id}`}
+                      checked={selectedCategoryIds.includes(cat.id)}
+                      onChange={() => handleCategoryChange(cat.id)}
+                    />
+                    <label htmlFor={`category-${cat.id}`}>{cat.name}</label>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

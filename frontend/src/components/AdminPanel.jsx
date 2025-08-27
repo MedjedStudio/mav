@@ -281,6 +281,7 @@ function AdminPanel({ user, onUpdate }) {
                   <th>タイトル</th>
                   <th>内容</th>
                   <th>カテゴリ</th>
+                  <th>公開状態</th>
                   <th>作成日</th>
                   <th>操作</th>
                 </tr>
@@ -334,6 +335,11 @@ function AdminPanel({ user, onUpdate }) {
                           : <span className="admin-category-tag">未分類</span>
                         }
                       </div>
+                    </td>
+                    <td>
+                      <span className={`publish-status ${content.is_published ? 'published' : 'unpublished'}`}>
+                        {content.is_published ? '公開' : '非公開'}
+                      </span>
                     </td>
                     <td>
                       {new Date(content.created_at).toLocaleDateString()}

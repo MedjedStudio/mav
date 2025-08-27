@@ -25,7 +25,8 @@ def create_content(
 ):
     content = ContentModel(
         title=request.title,
-        content=request.content
+        content=request.content,
+        is_published=getattr(request, 'is_published', False)
     )
     db.add(content)
     db.commit()
@@ -51,6 +52,7 @@ def create_content(
         title=content.title,
         content=content.content,
         categories=category_names,
+        is_published=content.is_published,
         created_at=content.created_at,
         updated_at=content.updated_at
     )
@@ -77,6 +79,8 @@ def update_content(
         content.title = request.title
     if request.content is not None:
         content.content = request.content
+    if hasattr(request, 'is_published') and request.is_published is not None:
+        content.is_published = request.is_published
     if request.category_ids is not None:
         # カテゴリを更新
         if request.category_ids:
@@ -99,6 +103,7 @@ def update_content(
         title=content.title,
         content=content.content,
         categories=category_names,
+        is_published=content.is_published,
         created_at=content.created_at,
         updated_at=content.updated_at
     )
@@ -147,6 +152,7 @@ def get_all_contents_admin(
             title=content.title,
             content=content.content,
             categories=category_names,
+            is_published=content.is_published,
             created_at=content.created_at,
             updated_at=content.updated_at
         ))
@@ -170,7 +176,8 @@ def get_contents(
     query = db.query(ContentModel).options(
         selectinload(ContentModel.categories)
     ).filter(
-        ContentModel.deleted_at.is_(None)
+        ContentModel.deleted_at.is_(None),
+        ContentModel.is_published == True
     )
     
     if category:
@@ -196,6 +203,7 @@ def get_contents(
             title=content.title,
             content=content.content,
             categories=category_names,
+            is_published=content.is_published,
             created_at=content.created_at,
             updated_at=content.updated_at
         ))
@@ -209,7 +217,8 @@ def get_content(content_id: int, db: Session = Depends(get_db)):
         selectinload(ContentModel.categories)
     ).filter(
         ContentModel.id == content_id,
-        ContentModel.deleted_at.is_(None)
+        ContentModel.deleted_at.is_(None),
+        ContentModel.is_published == True
     ).first()
     if not content:
         raise HTTPException(
@@ -224,6 +233,7 @@ def get_content(content_id: int, db: Session = Depends(get_db)):
         title=content.title,
         content=content.content,
         categories=category_names,
+        is_published=content.is_published,
         created_at=content.created_at,
         updated_at=content.updated_at
     )
