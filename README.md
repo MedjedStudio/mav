@@ -468,9 +468,6 @@ MYSQL_DATABASE=mav_db
 
 # CORS設定（本番ドメインを追加）
 CORS_ORIGINS=https://mav.your-domain.com
-
-# ファイル配信用ベースURL（HTTPS対応）
-BASE_URL=https://mav.your-domain.com
 ```
 
 **フロントエンド環境変数：**

@@ -36,8 +36,6 @@ class Settings:
             if origin.strip()
         ]
         
-        # Base URL for file serving (本番環境用)
-        self.BASE_URL: str = os.getenv("BASE_URL")
         
         # Debug
         self.DEBUG: bool = (os.getenv("DEBUG") or "false").lower() == "true"
@@ -68,8 +66,6 @@ class Settings:
             raise ValueError("JWT_EXPIRE_HOURS environment variable is required")
         if not self.CORS_ORIGINS:
             raise ValueError("CORS_ORIGINS environment variable is required")
-        if self.BASE_URL is None:
-            raise ValueError("BASE_URL environment variable is required")
 
 
 # Global settings instance
