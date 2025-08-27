@@ -1,6 +1,8 @@
 
 // 管理メニューコンポーネント
-function AdminSidebar({ activeView, onViewChange }) {
+function AdminSidebar({ activeView, onViewChange, user }) {
+  const isAdmin = user?.role === 'admin'
+  
   return (
     <div className="admin-sidebar">
       <h2>管理メニュー</h2>
@@ -12,29 +14,35 @@ function AdminSidebar({ activeView, onViewChange }) {
           コンテンツ管理
         </button>
         <button 
-          className={activeView === 'categories' ? 'active' : ''}
-          onClick={() => onViewChange('categories')}
-        >
-          カテゴリ管理
-        </button>
-        <button 
           className={activeView === 'files' ? 'active' : ''}
           onClick={() => onViewChange('files')}
         >
           ファイル管理
         </button>
-        <button 
-          className={activeView === 'backup' ? 'active' : ''}
-          onClick={() => onViewChange('backup')}
-        >
-          バックアップ管理
-        </button>
-        <button 
-          className={activeView === 'users' ? 'active' : ''}
-          onClick={() => onViewChange('users')}
-        >
-          ユーザー管理
-        </button>
+        {isAdmin && (
+          <button 
+            className={activeView === 'categories' ? 'active' : ''}
+            onClick={() => onViewChange('categories')}
+          >
+            カテゴリ管理
+          </button>
+        )}
+        {isAdmin && (
+          <button 
+            className={activeView === 'users' ? 'active' : ''}
+            onClick={() => onViewChange('users')}
+          >
+            ユーザー管理
+          </button>
+        )}
+        {isAdmin && (
+          <button 
+            className={activeView === 'backup' ? 'active' : ''}
+            onClick={() => onViewChange('backup')}
+          >
+            バックアップ管理
+          </button>
+        )}
         <button 
           className={activeView === 'profile' ? 'active' : ''}
           onClick={() => onViewChange('profile')}

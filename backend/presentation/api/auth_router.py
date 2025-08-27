@@ -73,6 +73,15 @@ def require_admin(current_user: UserModel = Depends(get_current_user)) -> UserMo
         )
     return current_user
 
+def require_authenticated(current_user: UserModel = Depends(get_current_user)) -> UserModel:
+    """認証されたユーザー（admin or member）のみアクセス可能"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MEMBER]:
+        raise create_error_response(
+            status.HTTP_403_FORBIDDEN,
+            "Authentication required"
+        )
+    return current_user
+
 @router.get("/me", response_model=UserInfo)
 def get_me(current_user: UserModel = Depends(get_current_user)):
     return UserInfo(

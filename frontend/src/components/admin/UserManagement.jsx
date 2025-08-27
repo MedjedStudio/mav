@@ -220,7 +220,7 @@ function UserManagement() {
           </form>
         </div>
       ) : (
-        <div className="user-list-container">
+        <div className="content-list">
           <div className="content-list-header">
             <h3>ユーザー一覧</h3>
             <button 

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func
 from infrastructure.persistence.database import get_db
 from infrastructure.persistence.models import ContentModel, UserModel, CategoryModel
-from presentation.api.auth_router import get_current_user, require_admin
+from presentation.api.auth_router import get_current_user, require_admin, require_authenticated
 from presentation.schemas.content_schemas import ContentCreate, ContentUpdate, ContentResponse
 
 router = APIRouter()
@@ -16,17 +16,18 @@ def get_category_names(content):
         category_names = ["未分類"]
     return category_names
 
-# 管理者専用: コンテンツ作成
+# 認証済みユーザー: コンテンツ作成
 @router.post("/", response_model=ContentResponse)
 def create_content(
     request: ContentCreate,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_admin)
+    current_user: UserModel = Depends(require_authenticated)
 ):
     content = ContentModel(
         title=request.title,
         content=request.content,
-        is_published=getattr(request, 'is_published', False)
+        is_published=getattr(request, 'is_published', False),
+        author_id=current_user.id
     )
     db.add(content)
     db.commit()
@@ -53,17 +54,18 @@ def create_content(
         content=content.content,
         categories=category_names,
         is_published=content.is_published,
+        author_name=current_user.username,
         created_at=content.created_at,
         updated_at=content.updated_at
     )
 
-# 管理者専用: コンテンツ更新
+# 認証済みユーザー: コンテンツ更新
 @router.put("/{content_id}", response_model=ContentResponse)
 def update_content(
     content_id: int,
     request: ContentUpdate,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_admin)
+    current_user: UserModel = Depends(require_authenticated)
 ):
     content = db.query(ContentModel).filter(
         ContentModel.id == content_id,
@@ -73,6 +75,14 @@ def update_content(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="コンテンツが見つかりません"
+        )
+    
+    # 権限チェック：管理者か作成者のみ編集可能
+    from infrastructure.persistence.models import UserRole
+    if current_user.role != UserRole.ADMIN and content.author_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="このコンテンツを編集する権限がありません"
         )
     
     if request.title is not None:
@@ -104,16 +114,17 @@ def update_content(
         content=content.content,
         categories=category_names,
         is_published=content.is_published,
+        author_name=current_user.username,
         created_at=content.created_at,
         updated_at=content.updated_at
     )
 
-# 管理者専用: コンテンツ削除（論理削除）
+# 認証済みユーザー: コンテンツ削除（論理削除）
 @router.delete("/{content_id}")
 def delete_content(
     content_id: int,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_admin)
+    current_user: UserModel = Depends(require_authenticated)
 ):
     content = db.query(ContentModel).filter(
         ContentModel.id == content_id,
@@ -125,26 +136,48 @@ def delete_content(
             detail="コンテンツが見つかりません"
         )
     
+    # 権限チェック：管理者か作成者のみ削除可能
+    from infrastructure.persistence.models import UserRole
+    if current_user.role != UserRole.ADMIN and content.author_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="このコンテンツを削除する権限がありません"
+        )
+    
     from datetime import datetime
     content.deleted_at = datetime.utcnow()
     db.commit()
     return {"message": "コンテンツを削除しました"}
 
-# 管理者専用: 全コンテンツ一覧（管理画面用）
+# 認証済みユーザー: 全コンテンツ一覧（管理画面用）
 @router.get("/admin", response_model=List[ContentResponse])
 def get_all_contents_admin(
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_admin)
+    current_user: UserModel = Depends(require_authenticated)
 ):
-    contents = db.query(ContentModel).options(
+    from infrastructure.persistence.models import UserRole
+    
+    query = db.query(ContentModel, UserModel.username).join(
+        UserModel, ContentModel.author_id == UserModel.id
+    ).options(
         selectinload(ContentModel.categories)
     ).filter(
         ContentModel.deleted_at.is_(None)
-    ).order_by(ContentModel.created_at.desc()).all()
+    )
+    
+    # 権限に応じたフィルタリング
+    if current_user.role == UserRole.ADMIN:
+        # 管理者は全てのコンテンツを表示
+        results = query.order_by(ContentModel.created_at.desc()).all()
+    else:
+        # メンバーは自分のコンテンツのみ表示
+        results = query.filter(
+            ContentModel.author_id == current_user.id
+        ).order_by(ContentModel.created_at.desc()).all()
     
     # カテゴリ名を含むレスポンスを生成
     result = []
-    for content in contents:
+    for content, author_name in results:
         category_names = get_category_names(content)
         
         result.append(ContentResponse(
@@ -153,6 +186,7 @@ def get_all_contents_admin(
             content=content.content,
             categories=category_names,
             is_published=content.is_published,
+            author_name=author_name,
             created_at=content.created_at,
             updated_at=content.updated_at
         ))
@@ -173,7 +207,9 @@ def get_contents(
     category: Optional[str] = Query(None, description="カテゴリでフィルタ"), 
     db: Session = Depends(get_db)
 ):
-    query = db.query(ContentModel).options(
+    query = db.query(ContentModel, UserModel.username).join(
+        UserModel, ContentModel.author_id == UserModel.id
+    ).options(
         selectinload(ContentModel.categories)
     ).filter(
         ContentModel.deleted_at.is_(None),
@@ -191,11 +227,11 @@ def get_contents(
                 CategoryModel.id == category_obj.id
             )
     
-    contents = query.order_by(ContentModel.created_at.desc()).all()
+    results = query.order_by(ContentModel.created_at.desc()).all()
     
     # カテゴリ名を含むレスポンスを生成
     result = []
-    for content in contents:
+    for content, author_name in results:
         category_names = get_category_names(content)
         
         result.append(ContentResponse(
@@ -204,6 +240,7 @@ def get_contents(
             content=content.content,
             categories=category_names,
             is_published=content.is_published,
+            author_name=author_name,
             created_at=content.created_at,
             updated_at=content.updated_at
         ))
@@ -213,19 +250,22 @@ def get_contents(
 # 公開: 個別コンテンツ取得
 @router.get("/{content_id}", response_model=ContentResponse)
 def get_content(content_id: int, db: Session = Depends(get_db)):
-    content = db.query(ContentModel).options(
+    result = db.query(ContentModel, UserModel.username).join(
+        UserModel, ContentModel.author_id == UserModel.id
+    ).options(
         selectinload(ContentModel.categories)
     ).filter(
         ContentModel.id == content_id,
         ContentModel.deleted_at.is_(None),
         ContentModel.is_published == True
     ).first()
-    if not content:
+    if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="コンテンツが見つかりません"
         )
     
+    content, author_name = result
     category_names = [cat.name for cat in content.categories if cat.deleted_at is None]
     
     return ContentResponse(
@@ -234,6 +274,7 @@ def get_content(content_id: int, db: Session = Depends(get_db)):
         content=content.content,
         categories=category_names,
         is_published=content.is_published,
+        author_name=author_name,
         created_at=content.created_at,
         updated_at=content.updated_at
     )

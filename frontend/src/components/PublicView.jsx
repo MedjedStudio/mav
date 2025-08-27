@@ -134,6 +134,7 @@ function PublicView({ contentId, setContentId, resetCategory }) {
                       {cat}
                     </span>
                   ))}
+                  <span style={{ marginLeft: '12px', color: '#8c959f' }}>{selectedContent.author_name}</span>
                 </div>
               </div>
             </header>
@@ -231,13 +232,16 @@ function PublicView({ contentId, setContentId, resetCategory }) {
                       })()}
                     </p>
                     <div className="card-meta">
-                      <span className="card-date">{formatDateToUserTimezone(content.created_at, getUserTimezone()).split(' ')[0]}</span>
                       <div className="card-categories">
                         {content.categories && content.categories.slice(0, 2).map(cat => (
                           <span key={cat} className="card-category">
                             {cat}
                           </span>
                         ))}
+                      </div>
+                      <div className="card-info">
+                        <span className="card-date">{formatDateToUserTimezone(content.created_at, getUserTimezone()).split(' ')[0]}</span>
+                        <span className="card-author">{content.author_name}</span>
                       </div>
                     </div>
                   </div>

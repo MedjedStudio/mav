@@ -131,11 +131,11 @@ function App() {
             <SetupForm onSetup={handleSetup} />
           )}
           
-          {view === 'admin' && user?.role === 'admin' && (
+          {view === 'admin' && user && (user?.role === 'admin' || user?.role === 'member') && (
             <AdminPanel user={user} onUpdate={setUser} />
           )}
           
-          {(view === 'public' || (user?.role !== 'admin')) && view !== 'setup' && !needsSetup && (
+          {view === 'public' && view !== 'setup' && !needsSetup && (
             <PublicView contentId={contentId} setContentId={setContentId} resetCategory={resetCategoryTrigger} />
           )}
         </main>

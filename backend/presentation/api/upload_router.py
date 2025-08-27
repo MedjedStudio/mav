@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 from config import settings
-from presentation.api.auth_router import require_admin
+from presentation.api.auth_router import require_admin, require_authenticated
 from infrastructure.persistence.models import UserModel, FileModel
 from infrastructure.persistence.database import get_db
 from sqlalchemy.orm import Session
@@ -22,12 +22,21 @@ router = APIRouter()
 
 @router.get("/", response_model=List[Dict[str, Any]])
 async def list_files(
-    current_user: UserModel = Depends(require_admin),
+    current_user: UserModel = Depends(require_authenticated),
     db: Session = Depends(get_db)
 ):
     """Get list of uploaded files from database."""
     try:
-        files = db.query(FileModel).filter(FileModel.deleted_at.is_(None)).all()
+        from infrastructure.persistence.models import UserRole
+        
+        # 管理者は全ファイル表示、メンバーは自分のファイルのみ表示
+        if current_user.role == UserRole.ADMIN:
+            files = db.query(FileModel).filter(FileModel.deleted_at.is_(None)).all()
+        else:
+            files = db.query(FileModel).filter(
+                FileModel.deleted_at.is_(None),
+                FileModel.uploaded_by == current_user.id
+            ).all()
         file_list = []
         
         for file in files:
@@ -81,7 +90,7 @@ def _get_mime_type(file_path: Path) -> str:
 @router.post("/upload")
 async def upload_image(
     file: UploadFile = File(...),
-    current_user: UserModel = Depends(require_admin),
+    current_user: UserModel = Depends(require_authenticated),
     db: Session = Depends(get_db)
 ):
     """Upload an image file."""
@@ -166,7 +175,7 @@ async def get_image(filename: str):
 @router.delete("/{filename}")
 async def delete_file(
     filename: str,
-    current_user: UserModel = Depends(require_admin),
+    current_user: UserModel = Depends(require_authenticated),
     db: Session = Depends(get_db)
 ):
     """Delete uploaded file."""
@@ -174,6 +183,14 @@ async def delete_file(
     file_record = db.query(FileModel).filter(FileModel.filename == filename).first()
     if not file_record:
         raise HTTPException(status_code=404, detail="File not found in database")
+    
+    # 権限チェック: 管理者または作成者のみ削除可能
+    from infrastructure.persistence.models import UserRole
+    if current_user.role != UserRole.ADMIN and file_record.uploaded_by != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="このファイルを削除する権限がありません"
+        )
     
     file_path = find_file_by_name(settings.UPLOAD_DIR, filename)
     

@@ -3,7 +3,7 @@ import axios from 'axios'
 import { API_BASE_URL } from '../../services/api'
 import { getToken } from '../../utils/auth'
 import ConfirmModal from '../ui/ConfirmModal'
-import InfoModal from '../ui/InfoModal'
+import Toast from '../ui/Toast'
 
 // ファイル管理コンポーネント
 function FileManagement() {
@@ -16,10 +16,10 @@ function FileManagement() {
     message: '',
     onConfirm: null
   })
-  const [infoModal, setInfoModal] = useState({
-    isOpen: false,
-    title: '',
-    message: ''
+  const [toast, setToast] = useState({
+    isVisible: false,
+    message: '',
+    type: 'success'
   })
 
   useEffect(() => {
@@ -60,10 +60,10 @@ function FileManagement() {
         })
       } catch (error) {
         const errorMessage = error.response?.data?.detail || error.message || '不明なエラー'
-        setInfoModal({
-          isOpen: true,
-          title: 'アップロード失敗',
-          message: `ファイル「${file.name}」のアップロードに失敗しました: ${errorMessage}`
+        setToast({
+          isVisible: true,
+          message: `ファイル「${file.name}」のアップロードに失敗しました: ${errorMessage}`,
+          type: 'error'
         })
       }
     }
@@ -108,10 +108,10 @@ function FileManagement() {
     
     if (navigator.clipboard) {
       navigator.clipboard.writeText(markdownImage).then(() => {
-        setInfoModal({
-          isOpen: true,
-          title: 'コピー完了',
-          message: 'マークダウン形式でクリップボードにコピーしました'
+        setToast({
+          isVisible: true,
+          message: 'マークダウン形式でクリップボードにコピーしました',
+          type: 'success'
         })
       }).catch(() => {
         // フォールバック: テキストエリアを使用
@@ -131,16 +131,16 @@ function FileManagement() {
     textArea.select()
     try {
       document.execCommand('copy')
-      setInfoModal({
-        isOpen: true,
-        title: 'コピー完了',
-        message: 'マークダウン形式でクリップボードにコピーしました'
+      setToast({
+        isVisible: true,
+        message: 'マークダウン形式でクリップボードにコピーしました',
+        type: 'success'
       })
     } catch {
-      setInfoModal({
-        isOpen: true,
-        title: 'コピー失敗',
-        message: 'コピーに失敗しました。手動でコピーしてください: ' + text
+      setToast({
+        isVisible: true,
+        message: 'コピーに失敗しました。手動でコピーしてください: ' + text,
+        type: 'error'
       })
     }
     document.body.removeChild(textArea)
@@ -229,11 +229,11 @@ function FileManagement() {
         onConfirm={confirmModal.onConfirm}
         onCancel={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: null })}
       />
-      <InfoModal
-        isOpen={infoModal.isOpen}
-        title={infoModal.title}
-        message={infoModal.message}
-        onClose={() => setInfoModal({ isOpen: false, title: '', message: '' })}
+      <Toast
+        isVisible={toast.isVisible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ isVisible: false, message: '', type: 'success' })}
       />
     </div>
   )

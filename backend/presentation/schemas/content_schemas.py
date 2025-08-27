@@ -20,6 +20,7 @@ class ContentResponse(BaseModel):
     content: str
     categories: List[str] = []
     is_published: bool
+    author_name: str
     created_at: datetime
     updated_at: datetime
 

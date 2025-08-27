@@ -135,8 +135,8 @@ function BackupManagement() {
 
   return (
     <div className="backup-management">
-      <div className="admin-content-header">
-        <h2>バックアップ管理</h2>
+      <div className="content-list-header">
+        <h3>バックアップ管理</h3>
       </div>
 
       {message && <div className="success">{message}</div>}

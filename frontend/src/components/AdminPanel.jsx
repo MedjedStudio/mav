@@ -190,6 +190,10 @@ function AdminPanel({ user, onUpdate }) {
   }
 
   const handleViewChange = (view) => {
+    // memberユーザーはadmin専用ビューにアクセス不可（contents、filesは除く）
+    if (user?.role === 'member' && ['categories', 'backup', 'users'].includes(view)) {
+      return
+    }
     setActiveView(view)
     setShowForm(false)
     setEditingContent(null)
@@ -201,19 +205,20 @@ function AdminPanel({ user, onUpdate }) {
     <div className="admin-panel">
       <AdminSidebar 
         activeView={activeView} 
-        onViewChange={handleViewChange} 
+        onViewChange={handleViewChange}
+        user={user}
       />
 
       <div className="admin-main">
         {activeView === 'profile' ? (
           <AdminProfileEdit user={user} onUpdate={onUpdate} />
-        ) : activeView === 'backup' ? (
+        ) : activeView === 'backup' && user?.role === 'admin' ? (
           <BackupManagement />
-        ) : activeView === 'users' ? (
+        ) : activeView === 'users' && user?.role === 'admin' ? (
           <UserManagement />
         ) : activeView === 'files' ? (
           <FileManagement />
-        ) : activeView === 'categories' ? (
+        ) : activeView === 'categories' && user?.role === 'admin' ? (
           (showCategoryForm || editingCategory) ? (
             <CategoryForm
               category={editingCategory}
@@ -231,7 +236,7 @@ function AdminPanel({ user, onUpdate }) {
                   新規カテゴリ作成
                 </button>
               </div>
-              <table className="admin-content-table">
+              <table className="admin-content-table category-table">
                 <thead>
                   <tr>
                     <th>カテゴリ名</th>
@@ -268,7 +273,7 @@ function AdminPanel({ user, onUpdate }) {
             onSave={handleSave}
             onCancel={() => { setShowForm(false); setEditingContent(null) }}
           />
-        ) : (
+        ) : activeView === 'contents' ? (
           <div className="content-list">
             <div className="content-list-header">
               <h3>コンテンツ一覧</h3>
@@ -418,6 +423,9 @@ function AdminPanel({ user, onUpdate }) {
               </div>
             )}
           </div>
+        ) : (
+          // memberユーザーの場合は何も表示しない（プロフィールのみ）
+          <div></div>
         )}
       </div>
       
