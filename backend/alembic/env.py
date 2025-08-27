@@ -13,17 +13,23 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 from infrastructure.persistence.models import Base
-from infrastructure.persistence.database import DATABASE_URL
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Override the sqlalchemy.url with environment variable if available
-if os.environ.get("DATABASE_URL"):
-    config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
-else:
+# Build DATABASE_URL from individual MySQL environment variables
+MYSQL_USER = os.getenv("MYSQL_USER")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+MYSQL_HOST = os.getenv("MYSQL_HOST")
+MYSQL_PORT = os.getenv("MYSQL_PORT", "3306")
+MYSQL_DATABASE = os.getenv("MYSQL_DATABASE")
+
+if all([MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_DATABASE]):
+    DATABASE_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
     config.set_main_option("sqlalchemy.url", DATABASE_URL)
+else:
+    raise ValueError("MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, and MYSQL_DATABASE environment variables are required")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

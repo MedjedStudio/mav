@@ -64,8 +64,7 @@ mav/
 │   │   └── response_utils.py      # レスポンスユーティリティ
 │   ├── alembic/                   # データベースマイグレーション
 │   ├── requirements.txt           # Python依存関係
-│   ├── Dockerfile.dev             # 開発環境用Docker設定
-│   └── Dockerfile.prod            # 本番環境用Docker設定
+│   └── Dockerfile                 # Docker設定
 ├── frontend/                      # React アプリケーション
 │   ├── src/
 │   │   ├── App.jsx               # メインコンポーネント
@@ -83,7 +82,7 @@ mav/
 │   ├── package.json              # Node.js依存関係
 │   ├── vite.config.js            # Vite設定
 │   ├── build.sh                  # フロントエンドビルドスクリプト
-│   ├── Dockerfile.dev            # 開発環境用Docker設定
+│   ├── Dockerfile                # Docker設定
 │   └── index.html                # HTMLテンプレート
 ├── nginx/                         # Nginx設定
 │   └── mav.conf                  # 本番環境用Nginx設定
@@ -353,13 +352,16 @@ sudo docker compose down -v
 sudo docker compose up --build -d
 ```
 
-**本番環境：**
+**本番環境（Native Deployment）：**
 ```bash
-# 本番環境の完全クリーンアップ
-sudo docker compose -f docker-compose.prod.yml down -v
-sudo docker system prune -a -f
-sudo docker compose -f docker-compose.prod.yml up --build -d
-sudo docker compose -f docker-compose.prod.yml run --rm migrate
+# systemdサービスの再起動
+sudo systemctl restart mav-backend
+
+# ログ確認
+sudo journalctl -u mav-backend -f
+
+# 必要に応じてNginx再起動
+sudo systemctl reload nginx
 ```
 
 ### データベース接続エラー
@@ -445,10 +447,17 @@ cd ..
 ```bash
 # セキュリティ設定
 DEBUG=false
+
+# JWT設定
 JWT_SECRET_KEY=secure-random-key-32-characters
+JWT_EXPIRE_HOURS=24
 
 # データベース設定
-DATABASE_URL=mysql+pymysql://mav_user:your_secure_password@localhost:3306/mav_db
+MYSQL_USER=mav_user
+MYSQL_PASSWORD=your_secure_password
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_DATABASE=mav_db
 
 # CORS設定（本番ドメインを追加）
 CORS_ORIGINS=https://mav.your-domain.com
@@ -683,7 +692,11 @@ sudo systemctl restart mav-backend
 
 **Gunicornワーカー数調整：**
 ```bash
-# backend/Dockerfile.prod でワーカー数を調整
-# CPUコア数 x 2 + 1 が目安
-CMD ["gunicorn", "app:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", ...]
+# systemd/mav-backend.service でワーカー数を調整
+# CPUコア数 x 2 + 1 が目安（デフォルト: 4）
+ExecStart=...gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker...
+
+# サービス再起動
+sudo systemctl daemon-reload
+sudo systemctl restart mav-backend
 ```

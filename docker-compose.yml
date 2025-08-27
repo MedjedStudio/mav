@@ -22,12 +22,14 @@ services:
   migrate:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     volumes:
       - ./backend:/app
     environment:
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}?ssl_disabled=true
       - MYSQL_PWD=${MYSQL_PASSWORD}
+      - DB_HOST=mysql
+      - DB_USER=${MYSQL_USER}
     networks:
       - mav-network
     depends_on:
@@ -38,7 +40,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
@@ -47,7 +49,12 @@ services:
     environment:
       - DEBUG=true
       - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-very-secure-secret-key-change-this-in-production-12345}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_EXPIRE_HOURS=${JWT_EXPIRE_HOURS:-24}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost:8000}
+      - BASE_URL=${BASE_URL:-}
+      - HOST=0.0.0.0
+      - PORT=8000
     networks:
       - mav-network
     depends_on:
@@ -59,14 +66,14 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://192.168.1.6:8000
+      - VITE_API_URL=${VITE_API_URL}
     depends_on:
       - backend
     networks:

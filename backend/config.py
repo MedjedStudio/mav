@@ -10,41 +10,66 @@ load_dotenv()
 class Settings:
     """Application settings."""
     
-    # Database
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", 
-        "mysql+pymysql://mav_user:mav_password@mysql:3306/mav_db"
-    )
+    def __init__(self):
+        """Initialize settings and validate environment variables."""
+        # Database
+        self.MYSQL_USER: str = os.getenv("MYSQL_USER")
+        self.MYSQL_PASSWORD: str = os.getenv("MYSQL_PASSWORD") 
+        self.MYSQL_HOST: str = os.getenv("MYSQL_HOST")
+        self.MYSQL_PORT: int = int(os.getenv("MYSQL_PORT") or "0")
+        self.MYSQL_DATABASE: str = os.getenv("MYSQL_DATABASE")
+        
+        # JWT
+        self.JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
+        self.JWT_ALGORITHM: str = "HS256"
+        self.JWT_EXPIRE_HOURS: int = int(os.getenv("JWT_EXPIRE_HOURS") or "0")
+        
+        # File Upload
+        self.UPLOAD_DIR: Path = Path("uploads")
+        self.MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
+        self.ALLOWED_EXTENSIONS: set = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+        
+        # CORS
+        self.CORS_ORIGINS: list = [
+            origin.strip() 
+            for origin in (os.getenv("CORS_ORIGINS") or "").split(",") 
+            if origin.strip()
+        ]
+        
+        # Base URL for file serving (本番環境用)
+        self.BASE_URL: str = os.getenv("BASE_URL")
+        
+        # Debug
+        self.DEBUG: bool = (os.getenv("DEBUG") or "false").lower() == "true"
+        
+        # Validate required settings
+        self._validate()
     
-    # JWT
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_HOURS: int = int(os.getenv("JWT_EXPIRE_HOURS", "24"))
+    @property
+    def DATABASE_URL(self) -> str:
+        """Construct DATABASE_URL from individual MySQL settings."""
+        return f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
     
-    # File Upload
-    UPLOAD_DIR: Path = Path("uploads")
-    MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
-    ALLOWED_EXTENSIONS: set = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
-    
-    # CORS
-    CORS_ORIGINS: list = [
-        origin.strip() 
-        for origin in os.getenv("CORS_ORIGINS", 
-            "http://localhost:3000,http://localhost:5173,http://localhost:8000"
-        ).split(",") 
-        if origin.strip()
-    ]
-    
-    # Base URL for file serving (本番環境用)
-    BASE_URL: str = os.getenv("BASE_URL", "")
-    
-    # Debug
-    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
-    
-    def __post_init__(self):
+    def _validate(self):
         """Validate required settings."""
+        if not self.MYSQL_USER:
+            raise ValueError("MYSQL_USER environment variable is required")
+        if not self.MYSQL_PASSWORD:
+            raise ValueError("MYSQL_PASSWORD environment variable is required")
+        if not self.MYSQL_HOST:
+            raise ValueError("MYSQL_HOST environment variable is required")
+        if not self.MYSQL_PORT:
+            raise ValueError("MYSQL_PORT environment variable is required")
+        if not self.MYSQL_DATABASE:
+            raise ValueError("MYSQL_DATABASE environment variable is required")
         if not self.JWT_SECRET_KEY:
             raise ValueError("JWT_SECRET_KEY environment variable is required")
+        if not self.JWT_EXPIRE_HOURS:
+            raise ValueError("JWT_EXPIRE_HOURS environment variable is required")
+        if not self.CORS_ORIGINS:
+            raise ValueError("CORS_ORIGINS environment variable is required")
+        if self.BASE_URL is None:
+            raise ValueError("BASE_URL environment variable is required")
 
 
 # Global settings instance

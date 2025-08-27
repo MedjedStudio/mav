@@ -30,4 +30,14 @@ app.include_router(backup_router, prefix="/backup", tags=["バックアップ"])
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    
+    host = os.getenv("HOST")
+    port = int(os.getenv("PORT") or 0)
+    
+    if not host:
+        raise ValueError("HOST environment variable is required")
+    if not port:
+        raise ValueError("PORT environment variable is required")
+    
+    uvicorn.run(app, host=host, port=port)
