@@ -156,7 +156,28 @@ function ContentForm({ content, onSave, onCancel }) {
                 />
               ) : (
                 <div className="markdown-preview">
-                  <ReactMarkdown>{contentText || '内容を入力してください...'}</ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      img: ({node, ...props}) => (
+                        <img 
+                          {...props} 
+                          src={props.src?.startsWith('http') ? props.src : `${API_BASE_URL}${props.src}`}
+                          onError={(e) => {
+                            e.target.style.display = 'none'
+                          }}
+                          style={{
+                            maxWidth: '100%',
+                            height: 'auto',
+                            borderRadius: '6px',
+                            margin: '16px 0',
+                            display: 'block'
+                          }}
+                        />
+                      )
+                    }}
+                  >
+                    {contentText || '内容を入力してください...'}
+                  </ReactMarkdown>
                 </div>
               )}
             </div>

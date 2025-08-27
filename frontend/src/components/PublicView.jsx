@@ -140,6 +140,7 @@ function PublicView({ contentId, setContentId, resetCategory }) {
                   img: ({node, ...props}) => (
                     <img 
                       {...props} 
+                      src={props.src?.startsWith('http') ? props.src : `${API_BASE_URL}${props.src}`}
                       onError={(e) => {
                         e.target.style.display = 'none'
                       }}
