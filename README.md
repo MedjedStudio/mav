@@ -18,7 +18,9 @@ FastAPI + React + MySQLを使用したコンテンツ管理システムです。
 - **コンテンツ管理**: 記事の作成・編集・削除・公開
 - **カテゴリ管理**: 記事のカテゴリ分類
 - **ファイル管理**: 画像ファイルのアップロード・管理
-- **ユーザー管理**: 管理者アカウントによるシステム管理
+- **ユーザー管理**: 管理者・メンバーアカウントによるシステム管理
+- **プロフィール管理**: ユーザーのアバター、プロフィール、タイムゾーン設定
+- **権限管理**: 管理者とメンバーの役割別アクセス制御
 - **バックアップ・復元**: 完全なシステムバックアップ機能
 - **初期セットアップ**: 初回起動時の自動セットアップ
 
@@ -52,12 +54,14 @@ mav/
 │   │   │   ├── category_router.py # カテゴリAPI
 │   │   │   ├── content_router.py  # コンテンツAPI
 │   │   │   ├── upload_router.py   # ファイルアップロードAPI
-│   │   │   └── user_router.py     # ユーザーAPI
+│   │   │   ├── user_router.py     # ユーザーAPI
+│   │   │   └── user_management_router.py # ユーザー管理API
 │   │   └── schemas/               # リクエスト/レスポンススキーマ
 │   │       ├── auth_schemas.py    # 認証スキーマ
 │   │       ├── category_schemas.py# カテゴリスキーマ
 │   │       ├── content_schemas.py # コンテンツスキーマ
-│   │       └── user_schemas.py    # ユーザースキーマ
+│   │       ├── user_schemas.py    # ユーザースキーマ
+│   │       └── user_profile_schemas.py # ユーザープロフィールスキーマ
 │   ├── utils/                     # ユーティリティ
 │   │   ├── auth_utils.py          # 認証ユーティリティ
 │   │   ├── file_utils.py          # ファイルユーティリティ
@@ -74,6 +78,8 @@ mav/
 │   │   │   ├── admin/            # 管理画面コンポーネント
 │   │   │   ├── forms/            # フォームコンポーネント
 │   │   │   └── ui/               # UIコンポーネント
+│   │   ├── contexts/             # Reactコンテキスト
+│   │   ├── styles/               # スタイルファイル
 │   │   ├── services/             # APIサービス
 │   │   │   ├── api.js            # API通信
 │   │   │   └── auth.js           # 認証サービス
@@ -108,10 +114,10 @@ cd mav
 cp .env.example .env
 
 # Docker Composeで全サービスを起動
-sudo docker compose up --build -d
+docker compose up --build -d
 
 # データベースマイグレーションを実行
-sudo docker compose run --rm migrate
+docker compose run --rm migrate
 ```
 
 ### 2. アクセス
@@ -135,13 +141,13 @@ sudo docker compose run --rm migrate
 
 ```bash
 # 現在のコンテナを停止・削除（データベースも削除）
-sudo docker compose down -v
+docker compose down -v
 
 # 新しい環境で起動
-sudo docker compose up --build -d
+docker compose up --build -d
 
 # データベースマイグレーションを実行
-sudo docker compose run --rm migrate
+docker compose run --rm migrate
 ```
 
 ### 2. ブラウザでアクセス
@@ -211,40 +217,40 @@ http://localhost:3000
 
 ```bash
 # サービス起動
-sudo docker compose up -d
+docker compose up -d
 
 # ログ確認
-sudo docker compose logs backend
-sudo docker compose logs frontend
+docker compose logs backend
+docker compose logs frontend
 
 # サービス再起動
-sudo docker compose restart backend
+docker compose restart backend
 
 # 停止・削除
-sudo docker compose down
+docker compose down
 
 # 完全クリーンアップ（データベース含む）
-sudo docker compose down -v
+docker compose down -v
 ```
 
 ### データベースマイグレーション
 
 ```bash
 # マイグレーション実行
-sudo docker compose run --rm migrate
+docker compose run --rm migrate
 
 # 新しいマイグレーションファイル作成
-sudo docker compose exec backend alembic revision --autogenerate -m "Description"
+docker compose exec backend alembic revision --autogenerate -m "Description"
 
 # マイグレーション履歴確認
-sudo docker compose exec backend alembic history
+docker compose exec backend alembic history
 ```
 
 ### データベースアクセス
 
 ```bash
 # MySQL接続
-sudo docker compose exec mysql mysql -u mav_user -pmav_password mav_db
+docker compose exec mysql mysql -u mav_user -pmav_password mav_db
 
 # テーブル確認
 SHOW TABLES;
@@ -354,8 +360,8 @@ sudo kill -9 <PID>
 ```bash
 # Docker環境クリーンアップ
 sudo docker system prune -f
-sudo docker compose down -v
-sudo docker compose up --build -d
+docker compose down -v
+docker compose up --build -d
 ```
 
 **本番環境（Native Deployment）：**
@@ -374,11 +380,11 @@ sudo systemctl reload nginx
 
 ```bash
 # データベースコンテナの状態確認
-sudo docker compose ps
-sudo docker compose logs mysql
+docker compose ps
+docker compose logs mysql
 
 # マイグレーションの再実行
-sudo docker compose run --rm migrate
+docker compose run --rm migrate
 ```
 
 

@@ -27,7 +27,7 @@ def get_upload_directory() -> str:
 
 def export_database_data(db: Session) -> Dict[str, Any]:
     """データベースのデータをエクスポート"""
-    # ユーザーデータ
+    # ユーザーデータ（削除されたものも含む）
     users = db.query(UserModel).all()
     users_data = []
     for user in users:
@@ -36,13 +36,16 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "username": user.username,
             "email": user.email,
             "password_hash": user.password_hash,
-            "role": user.role.value,
+            "role": user.role.value if hasattr(user.role, 'value') else user.role,
+            "avatar_url": user.avatar_url,
+            "profile": user.profile,
+            "timezone": user.timezone,
             "created_at": user.created_at.isoformat(),
             "updated_at": user.updated_at.isoformat(),
             "deleted_at": user.deleted_at.isoformat() if user.deleted_at else None
         })
     
-    # カテゴリデータ
+    # カテゴリデータ（削除されたものも含む）
     categories = db.query(CategoryModel).all()
     categories_data = []
     for category in categories:
@@ -55,7 +58,7 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "deleted_at": category.deleted_at.isoformat() if category.deleted_at else None
         })
     
-    # コンテンツデータ
+    # コンテンツデータ（削除されたものも含む）
     contents = db.query(ContentModel).options(selectinload(ContentModel.categories)).all()
     contents_data = []
     for content in contents:
@@ -66,12 +69,13 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "content": content.content,
             "categories": content_categories,
             "is_published": content.is_published,
+            "author_id": content.author_id,
             "created_at": content.created_at.isoformat(),
             "updated_at": content.updated_at.isoformat(),
             "deleted_at": content.deleted_at.isoformat() if content.deleted_at else None
         })
     
-    # ファイルデータ
+    # ファイルデータ（削除されたものも含む）
     files = db.query(FileModel).all()
     files_data = []
     for file in files:
@@ -162,6 +166,9 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             email=user_data["email"],
             password_hash=user_data["password_hash"],
             role=UserRole(user_data["role"]),
+            avatar_url=user_data.get("avatar_url"),
+            profile=user_data.get("profile"),
+            timezone=user_data.get("timezone"),
             created_at=datetime.fromisoformat(user_data["created_at"]),
             updated_at=datetime.fromisoformat(user_data["updated_at"]),
             deleted_at=datetime.fromisoformat(user_data["deleted_at"]) if user_data.get("deleted_at") else None
@@ -191,6 +198,7 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             title=content_data["title"],
             content=content_data["content"],
             is_published=content_data.get("is_published", False),
+            author_id=content_data["author_id"],
             created_at=datetime.fromisoformat(content_data["created_at"]),
             updated_at=datetime.fromisoformat(content_data["updated_at"]),
             deleted_at=datetime.fromisoformat(content_data["deleted_at"]) if content_data.get("deleted_at") else None
