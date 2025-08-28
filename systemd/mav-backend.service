@@ -1,5 +1,5 @@
 [Unit]
-Description=MAV Backend Service
+Description=mav Backend Service
 After=network.target mysql.service
 
 [Service]

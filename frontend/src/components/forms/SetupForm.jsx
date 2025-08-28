@@ -33,7 +33,7 @@ function SetupForm({ onSetup }) {
   return (
     <div className="setup-form">
       <div className="setup-header">
-        <h1>MAV 初期セットアップ</h1>
+        <h1>mav 初期セットアップ</h1>
         <p>管理者アカウントを作成してください</p>
       </div>
       <form onSubmit={handleSubmit}>

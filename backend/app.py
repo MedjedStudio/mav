@@ -8,7 +8,7 @@ from presentation.api.backup_router import router as backup_router
 from presentation.api.user_management_router import router as user_management_router
 from config import settings
 
-app = FastAPI(title="MAV API", version="1.0.0")
+app = FastAPI(title="mav API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
