@@ -191,7 +191,7 @@ body {
   background-color: #f6f8fa;
   border-bottom: 1px solid #d0d7de;
   color: #24292f;
-  padding: 16px;
+  padding: 4px 16px;
 }
 
 .header-container {
@@ -247,7 +247,7 @@ body {
 
 .user-button {
   background: transparent;
-  border: 1px solid #d0d7de;
+  border: none;
   color: #24292f;
   padding: 6px 12px;
   border-radius: 4px;
@@ -255,11 +255,21 @@ body {
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .user-button:hover {
   background-color: #f6f8fa;
-  border-color: #d0d7de;
+}
+
+.header-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #d0d7de;
 }
 
 .dropdown-menu {
@@ -267,38 +277,48 @@ body {
   top: 100%;
   right: 0;
   background: #ffffff;
-  border: 1px solid #d0d7de;
-  border-radius: 4px;
-  box-shadow: 0 8px 24px rgba(140,149,159,0.2);
-  min-width: 160px;
-  margin-top: 4px;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  min-width: 180px;
+  margin-top: 8px;
   z-index: 1000;
+  padding: 8px 0;
+  backdrop-filter: blur(10px);
 }
 
 .dropdown-item {
   display: block;
   width: 100%;
-  padding: 8px 16px;
+  padding: 12px 20px;
   background: transparent;
   border: none;
   text-align: left;
-  color: #24292f;
+  color: #1a1a1a;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.15s ease;
+  position: relative;
 }
 
 .dropdown-item:hover {
   background-color: #f6f8fa;
+  color: #0969da;
+  transform: translateX(2px);
+}
+
+.dropdown-item:active {
+  transform: translateX(1px);
 }
 
 
 .dropdown-item:first-child {
-  border-radius: 4px 4px 0 0;
+  border-radius: 6px 6px 0 0;
 }
 
 .dropdown-item:last-child {
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 6px 6px;
 }
 
 /* Button styles */
@@ -352,13 +372,12 @@ button:disabled {
 /* Header buttons */
 .header button {
   color: #24292f;
-  background-color: #f6f8fa;
-  border-color: #d0d7de;
+  background-color: transparent;
+  border: none;
 }
 
 .header button:hover {
-  background-color: #f3f4f6;
-  border-color: #d0d7de;
+  background-color: #f6f8fa;
 }
 
 .form-buttons {
@@ -1758,24 +1777,76 @@ button:disabled {
   border-top: none;
   padding-top: 0;
   margin-top: 0;
-  justify-content: flex-end;
+  justify-content: flex-start;
   display: flex;
   width: 100%;
 }
 
 .profile-edit .profile-display .form-buttons .btn-primary {
-  padding: 8px 16px;
+  padding: 5px 16px;
   font-size: 14px;
   font-weight: 500;
   background-color: #2d8659;
   color: #ffffff;
   border: 1px solid #2d8659;
-  border-radius: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .profile-edit .profile-display .form-buttons .btn-primary:hover {
   background-color: #26734d;
   border-color: #26734d;
+}
+
+.profile-action-buttons {
+  margin-top: 16px;
+  margin-left: 0;
+}
+
+.profile-action-buttons .btn-primary {
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: #2d8659;
+  color: #ffffff;
+  border: 1px solid #2d8659;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-action-buttons .btn-primary:hover {
+  background-color: #26734d;
+  border-color: #26734d;
+}
+
+.profile-action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.profile-action-buttons .btn-secondary {
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: #6c757d;
+  color: #ffffff;
+  border: 1px solid #6c757d;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-action-buttons .btn-secondary:hover {
+  background-color: #5a6268;
+  border-color: #5a6268;
+}
+
+.profile-action-buttons .btn-primary:disabled {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  cursor: not-allowed;
 }
 
 .profile-field label {
@@ -1837,21 +1908,22 @@ button:disabled {
 }
 
 .profile-form h3 {
-  margin-bottom: 24px;
-  color: #495057;
+  margin-bottom: 16px;
+  color: #24292f;
   font-size: 20px;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  position: relative;
+  padding-bottom: 8px;
 }
 
-.profile-form h3::before {
+.profile-form h3::after {
   content: '';
-  width: 4px;
-  height: 20px;
-  background-color: #2d8659;
-  border-radius: 2px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #d0d7de;
 }
 
 .profile-form > form > div {
@@ -2878,6 +2950,116 @@ input:checked + .slider:before {
 .category-table td:nth-child(3) {
   width: 120px;
   white-space: nowrap;
+}
+
+/* Profile Avatar Section */
+.profile-avatar-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.avatar-display {
+  flex-shrink: 0;
+  align-self: center;
+  margin-bottom: -8px;
+}
+
+.avatar-info,
+.avatar-controls {
+  text-align: left;
+}
+
+.avatar-info h4,
+.avatar-controls h4 {
+  margin: 0 0 8px 0;
+  color: #24292f;
+  font-size: 20px;
+  font-weight: 600;
+  position: relative;
+  padding-bottom: 8px;
+}
+
+.avatar-info h4::after,
+.avatar-controls h4::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #d0d7de;
+}
+
+
+.avatar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.avatar-controls h4 {
+  width: 100%;
+}
+
+.avatar-info .profile-action-buttons,
+.avatar-controls .profile-action-buttons {
+  align-self: flex-start;
+}
+
+/* Responsive avatar section */
+@media (max-width: 768px) {
+  .profile-avatar-section {
+    padding: 24px 16px;
+  }
+}
+
+/* Profile View Styles */
+.profile-view {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+
+.profile-content {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.profile-content .profile-edit {
+  margin: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+
+.profile-content .profile-forms {
+  padding: 0;
+}
+
+/* Responsive profile view */
+@media (max-width: 768px) {
+  .profile-view {
+    padding: 16px;
+  }
+  
+  .profile-content .profile-forms {
+    padding: 16px;
+  }
 }
 
 /* Responsive footer */

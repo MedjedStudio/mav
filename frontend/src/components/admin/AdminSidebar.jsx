@@ -43,12 +43,6 @@ function AdminSidebar({ activeView, onViewChange, user }) {
             バックアップ管理
           </button>
         )}
-        <button 
-          className={activeView === 'profile' ? 'active' : ''}
-          onClick={() => onViewChange('profile')}
-        >
-          プロフィール
-        </button>
       </nav>
     </div>
   )

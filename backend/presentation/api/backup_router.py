@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import text
 
 from infrastructure.persistence.database import get_db
-from infrastructure.persistence.models import ContentModel, CategoryModel, UserModel, UserRole, FileModel
+from infrastructure.persistence.models import ContentModel, CategoryModel, UserModel, UserRole, FileModel, AvatarModel
 from presentation.api.auth_router import get_current_user
 
 router = APIRouter(prefix="/backup", tags=["backup"])
@@ -37,7 +37,6 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "email": user.email,
             "password_hash": user.password_hash,
             "role": user.role.value if hasattr(user.role, 'value') else user.role,
-            "avatar_url": user.avatar_url,
             "profile": user.profile,
             "timezone": user.timezone,
             "created_at": user.created_at.isoformat(),
@@ -90,11 +89,28 @@ def export_database_data(db: Session) -> Dict[str, Any]:
             "deleted_at": file.deleted_at.isoformat() if file.deleted_at else None
         })
     
+    # アバターデータ（削除されたものも含む）
+    avatars = db.query(AvatarModel).all()
+    avatars_data = []
+    for avatar in avatars:
+        avatars_data.append({
+            "id": avatar.id,
+            "user_id": avatar.user_id,
+            "filename": avatar.filename,
+            "original_filename": avatar.original_filename,
+            "file_size": avatar.file_size,
+            "mime_type": avatar.mime_type,
+            "created_at": avatar.created_at.isoformat(),
+            "updated_at": avatar.updated_at.isoformat(),
+            "deleted_at": avatar.deleted_at.isoformat() if avatar.deleted_at else None
+        })
+    
     return {
         "users": users_data,
         "categories": categories_data,
         "contents": contents_data,
         "files": files_data,
+        "avatars": avatars_data,
         "exported_at": datetime.now().isoformat()
     }
 
@@ -118,11 +134,15 @@ async def download_backup(
         with open(db_file, 'w', encoding='utf-8') as f:
             json.dump(db_data, f, ensure_ascii=False, indent=2)
         
-        # アップロードファイルをコピー
+        # アップロードファイルをコピー（.gitkeepファイルを除外）
         upload_dir = Path(get_upload_directory())
         if upload_dir.exists():
             uploads_backup_dir = backup_dir / "uploads"
-            shutil.copytree(upload_dir, uploads_backup_dir)
+            
+            def ignore_gitkeep(dir, files):
+                return [f for f in files if f.startswith('.')]
+            
+            shutil.copytree(upload_dir, uploads_backup_dir, ignore=ignore_gitkeep)
         
         # ZIPファイルを作成
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -151,6 +171,7 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
     # 1. 中間テーブルを直接削除
     db.execute(text("DELETE FROM content_categories"))
     # 2. 外部キーを持つ子テーブルから削除
+    db.query(AvatarModel).delete()  # avatars（users.idを参照）
     db.query(FileModel).delete()  # files（users.idを参照）
     db.query(ContentModel).delete()  # contents
     # 3. 参照される側のテーブル
@@ -166,7 +187,6 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             email=user_data["email"],
             password_hash=user_data["password_hash"],
             role=UserRole(user_data["role"]),
-            avatar_url=user_data.get("avatar_url"),
             profile=user_data.get("profile"),
             timezone=user_data.get("timezone"),
             created_at=datetime.fromisoformat(user_data["created_at"]),
@@ -224,6 +244,21 @@ def import_database_data(db: Session, data: Dict[str, Any]) -> None:
             deleted_at=datetime.fromisoformat(file_data["deleted_at"]) if file_data.get("deleted_at") else None
         )
         db.add(file_record)
+    
+    # アバターデータを復元
+    for avatar_data in data.get("avatars", []):
+        avatar_record = AvatarModel(
+            id=avatar_data["id"],
+            user_id=avatar_data["user_id"],
+            filename=avatar_data["filename"],
+            original_filename=avatar_data["original_filename"],
+            file_size=avatar_data["file_size"],
+            mime_type=avatar_data["mime_type"],
+            created_at=datetime.fromisoformat(avatar_data["created_at"]),
+            updated_at=datetime.fromisoformat(avatar_data["updated_at"]),
+            deleted_at=datetime.fromisoformat(avatar_data["deleted_at"]) if avatar_data.get("deleted_at") else None
+        )
+        db.add(avatar_record)
     
     db.commit()
 

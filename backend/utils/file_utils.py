@@ -22,38 +22,79 @@ def is_allowed_file(filename: str, allowed_extensions: set) -> bool:
     return Path(filename).suffix.lower() in allowed_extensions
 
 
+def generate_unique_filename_with_path(original_filename: str, file_type: str = "files") -> str:
+    """Generate unique filename with hierarchical path."""
+    file_path = Path(original_filename)
+    unique_filename = f"{uuid.uuid4()}{file_path.suffix}"
+    
+    # Create hierarchical path
+    if file_type == "avatar":
+        return f"avatars/{unique_filename}"
+    else:
+        return f"files/{unique_filename}"
+
+
 def find_file_by_name(directory: Path, filename: str) -> Optional[Path]:
-    """Find file by name with URL encoding/decoding fallback."""
+    """Find file by name with hierarchical structure support."""
     if not directory.exists():
         return None
     
-    # Try direct match
-    file_path = directory / filename
-    if file_path.exists():
-        return file_path
+    # If filename contains path (e.g., "avatars/file.jpg"), use it directly
+    if "/" in filename:
+        file_path = directory / filename
+        if file_path.exists():
+            return file_path
+    else:
+        # Try direct match in root
+        file_path = directory / filename
+        if file_path.exists():
+            return file_path
+        
+        # Search in subdirectories
+        for subdir in ["files", "avatars"]:
+            subdir_path = directory / subdir
+            if subdir_path.exists():
+                file_path = subdir_path / filename
+                if file_path.exists():
+                    return file_path
     
     # Try URL decoded filename
     try:
         decoded_filename = urllib.parse.unquote(filename)
-        decoded_path = directory / decoded_filename
-        if decoded_path.exists():
-            return decoded_path
+        if "/" in decoded_filename:
+            decoded_path = directory / decoded_filename
+            if decoded_path.exists():
+                return decoded_path
+        else:
+            # Search in subdirectories for decoded filename
+            for subdir in ["files", "avatars"]:
+                subdir_path = directory / subdir
+                if subdir_path.exists():
+                    decoded_path = subdir_path / decoded_filename
+                    if decoded_path.exists():
+                        return decoded_path
     except Exception:
         pass
     
-    # Search through all files
-    for existing_file in directory.iterdir():
-        if not existing_file.is_file():
+    # Recursive search through all subdirectories
+    for root_dir in directory.rglob("*"):
+        if not root_dir.is_file():
             continue
             
-        if existing_file.name == filename:
-            return existing_file
+        if root_dir.name == filename:
+            return root_dir
             
         try:
-            if (urllib.parse.quote(existing_file.name) == filename or 
-                urllib.parse.unquote(existing_file.name) == filename):
-                return existing_file
+            if (urllib.parse.quote(root_dir.name) == filename or 
+                urllib.parse.unquote(root_dir.name) == filename):
+                return root_dir
         except Exception:
             continue
     
     return None
+
+
+def ensure_upload_directories(base_upload_dir: Path) -> None:
+    """Ensure upload directories exist."""
+    (base_upload_dir / "files").mkdir(parents=True, exist_ok=True)
+    (base_upload_dir / "avatars").mkdir(parents=True, exist_ok=True)

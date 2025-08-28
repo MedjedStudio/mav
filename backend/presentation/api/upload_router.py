@@ -2,20 +2,23 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import FileResponse
 import os
+import uuid
 from pathlib import Path
 from typing import List, Dict, Any
 
 from config import settings
 from presentation.api.auth_router import require_admin, require_authenticated
-from infrastructure.persistence.models import UserModel, FileModel
+from infrastructure.persistence.models import UserModel, FileModel, AvatarModel
 from infrastructure.persistence.database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from utils.file_utils import (
     generate_unique_filename,
+    generate_unique_filename_with_path,
     extract_original_filename, 
     is_allowed_file,
-    find_file_by_name
+    find_file_by_name,
+    ensure_upload_directories
 )
 
 router = APIRouter()
@@ -29,7 +32,7 @@ async def list_files(
     try:
         from infrastructure.persistence.models import UserRole
         
-        # 管理者は全ファイル表示、メンバーは自分のファイルのみ表示
+        # 管理者は全ファイル表示、メンバーは自分のファイルのみ表示（アバター画像は別テーブルなので自動除外）
         if current_user.role == UserRole.ADMIN:
             files = db.query(FileModel).filter(FileModel.deleted_at.is_(None)).all()
         else:
@@ -46,7 +49,7 @@ async def list_files(
                 "original_filename": file.original_filename,
                 "file_size": file.file_size,
                 "mime_type": file.mime_type,
-                "url": f"/uploads/{file.filename}",
+                "url": f"/uploads/files/{file.filename}",
                 "created_at": file.created_at.isoformat(),
                 "uploader": file.uploader.username if file.uploader else "Unknown"
             }
@@ -93,10 +96,129 @@ async def upload_image(
     current_user: UserModel = Depends(require_authenticated),
     db: Session = Depends(get_db)
 ):
-    """Upload an image file."""
-    
+    """Upload a general image file."""
+    return await _upload_file(file, current_user, db, file_type="files")
+
+
+@router.post("/upload/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: UserModel = Depends(require_authenticated),
+    db: Session = Depends(get_db)
+):
+    """Upload an avatar image file."""
     # Validate file
     _validate_file(file)
+    
+    # Ensure upload directories exist
+    ensure_upload_directories(settings.UPLOAD_DIR)
+    
+    # Read file content
+    content = await file.read()
+    file_size = len(content)
+    
+    # Check file size
+    if file_size > settings.MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File size too large. Maximum: {settings.MAX_FILE_SIZE / (1024 * 1024):.1f}MB"
+        )
+    
+    # Generate unique filename for avatar
+    unique_filename = f"{uuid.uuid4()}{Path(file.filename).suffix}"
+    file_path = settings.UPLOAD_DIR / "avatars" / unique_filename
+    
+    try:
+        # Ensure parent directory exists
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Save file
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
+        
+        # Check if user already has an avatar
+        existing_avatar = db.query(AvatarModel).filter(
+            AvatarModel.user_id == current_user.id,
+            AvatarModel.deleted_at.is_(None)
+        ).first()
+        
+        if existing_avatar:
+            # Update existing avatar record
+            existing_avatar.filename = unique_filename
+            existing_avatar.original_filename = file.filename
+            existing_avatar.file_size = file_size
+            existing_avatar.mime_type = _get_mime_type(file_path)
+            existing_avatar.updated_at = func.now()
+            # Remove old file
+            old_file_path = settings.UPLOAD_DIR / "avatars" / existing_avatar.filename
+            if old_file_path != file_path and old_file_path.exists():
+                old_file_path.unlink()
+        else:
+            # Create new avatar record
+            avatar_record = AvatarModel(
+                user_id=current_user.id,
+                filename=unique_filename,
+                original_filename=file.filename,
+                file_size=file_size,
+                mime_type=_get_mime_type(file_path)
+            )
+            db.add(avatar_record)
+        
+        db.commit()
+        
+        return {
+            "filename": unique_filename,
+            "original_filename": file.filename,
+            "url": f"/uploads/avatars/{unique_filename}",
+            "size": file_size
+        }
+    
+    except Exception as e:
+        db.rollback()
+        # Remove file if it was saved
+        if file_path.exists():
+            file_path.unlink()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to upload avatar: {str(e)}"
+        )
+
+
+@router.get("/avatar/{user_id}")
+async def get_user_avatar(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get user's avatar information (public access)."""
+    
+    avatar = db.query(AvatarModel).filter(
+        AvatarModel.user_id == user_id,
+        AvatarModel.deleted_at.is_(None)
+    ).first()
+    
+    if not avatar:
+        return {"avatar_url": None}
+    
+    return {
+        "avatar_url": f"/uploads/avatars/{avatar.filename}",
+        "original_filename": avatar.original_filename,
+        "file_size": avatar.file_size,
+        "updated_at": avatar.updated_at.isoformat()
+    }
+
+
+async def _upload_file(
+    file: UploadFile,
+    current_user: UserModel,
+    db: Session,
+    file_type: str = "files"
+):
+    """Common file upload logic."""
+    # Validate file
+    _validate_file(file)
+    
+    # Ensure upload directories exist
+    ensure_upload_directories(settings.UPLOAD_DIR)
     
     # Read file content
     content = await file.read()
@@ -109,18 +231,21 @@ async def upload_image(
             detail=f"File size too large. Maximum: {settings.MAX_FILE_SIZE / (1024 * 1024):.1f}MB"
         )
     
-    # Generate unique filename
-    unique_filename = generate_unique_filename(file.filename)
-    file_path = settings.UPLOAD_DIR / unique_filename
+    # Generate unique filename (without path)
+    unique_filename = f"{uuid.uuid4()}{Path(file.filename).suffix}"
+    file_path = settings.UPLOAD_DIR / "files" / unique_filename
     
     try:
+        # Ensure parent directory exists
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        
         # Save file
         with open(file_path, "wb") as buffer:
             buffer.write(content)
         
         # Save file info to database
         file_record = FileModel(
-            filename=unique_filename,
+            filename=unique_filename,  # Store filename only, no path
             original_filename=file.filename,
             file_size=file_size,
             mime_type=_get_mime_type(file_path),
@@ -132,7 +257,7 @@ async def upload_image(
         return {
             "filename": unique_filename,
             "original_filename": file.filename,
-            "url": f"/uploads/{unique_filename}",
+            "url": f"/uploads/files/{unique_filename}",
             "size": file_size
         }
     
@@ -172,15 +297,68 @@ async def get_image(filename: str):
     
     return FileResponse(file_path)
 
+@router.delete("/id/{file_id}")
+async def delete_file_by_id(
+    file_id: int,
+    current_user: UserModel = Depends(require_authenticated),
+    db: Session = Depends(get_db)
+):
+    """Delete uploaded file by ID (secure method)."""
+    # Find file record in database by ID
+    file_record = db.query(FileModel).filter(
+        FileModel.id == file_id,
+        FileModel.deleted_at.is_(None)
+    ).first()
+    if not file_record:
+        raise HTTPException(status_code=404, detail="File not found in database")
+    
+    # 権限チェック: 管理者または作成者のみ削除可能
+    from infrastructure.persistence.models import UserRole
+    if current_user.role != UserRole.ADMIN and file_record.uploaded_by != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="このファイルを削除する権限がありません"
+        )
+    
+    file_path = find_file_by_name(settings.UPLOAD_DIR, file_record.filename)
+    
+    try:
+        # Delete from filesystem if exists (ignore if not found)
+        if file_path:
+            try:
+                os.remove(file_path)
+            except FileNotFoundError:
+                pass  # File already deleted, continue with database deletion
+        
+        # Delete from database (logical delete)
+        from datetime import datetime
+        file_record.deleted_at = datetime.utcnow()
+        db.commit()
+        
+        return {"message": "File deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to delete file: {str(e)}"
+        )
+
 @router.delete("/{filename}")
-async def delete_file(
+async def delete_file_by_name(
     filename: str,
     current_user: UserModel = Depends(require_authenticated),
     db: Session = Depends(get_db)
 ):
-    """Delete uploaded file."""
+    """Delete uploaded file by filename (legacy method - deprecated)."""
+    # セキュリティチェック: パス区切り文字を拒否
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
     # Find file record in database
-    file_record = db.query(FileModel).filter(FileModel.filename == filename).first()
+    file_record = db.query(FileModel).filter(
+        FileModel.filename == filename,
+        FileModel.deleted_at.is_(None)
+    ).first()
     if not file_record:
         raise HTTPException(status_code=404, detail="File not found in database")
     

@@ -1,7 +1,39 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../services/api'
 
-function Header({ user, onLogout, onHomeClick }) {
+function Header({ user, onLogout, onHomeClick, onProfileClick, onAdminClick }) {
   const [showDropdown, setShowDropdown] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState('')
+  
+  // アバター取得
+  const fetchAvatar = async () => {
+    if (!user || !user.id) {
+      setAvatarUrl('')
+      return
+    }
+    
+    try {
+      const url = `${API_BASE_URL}/uploads/avatar/${user.id}`
+      const response = await fetch(url)
+      
+      if (response.ok) {
+        const avatarData = await response.json()
+        if (avatarData.avatar_url) {
+          setAvatarUrl(avatarData.avatar_url)
+        } else {
+          setAvatarUrl('')
+        }
+      } else {
+        setAvatarUrl('')
+      }
+    } catch (error) {
+      setAvatarUrl('')
+    }
+  }
+
+  useEffect(() => {
+    fetchAvatar()
+  }, [user])
   
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -30,10 +62,25 @@ function Header({ user, onLogout, onHomeClick }) {
                 className="user-button"
                 onClick={() => setShowDropdown(!showDropdown)}
               >
-                {user.username}
+                <span>{user.username}</span>
+                {avatarUrl && (
+                  <img 
+                    src={avatarUrl.startsWith('http') ? avatarUrl : `${API_BASE_URL}${avatarUrl}`}
+                    alt="アバター"
+                    className="header-avatar"
+                  />
+                )}
               </button>
               {showDropdown && (
                 <div className="dropdown-menu">
+                  {user && (user.role === 'admin' || user.role === 'member') && (
+                    <button className="dropdown-item" onClick={() => { onAdminClick && onAdminClick(); setShowDropdown(false) }}>
+                      管理画面
+                    </button>
+                  )}
+                  <button className="dropdown-item" onClick={() => { onProfileClick(); setShowDropdown(false) }}>
+                    プロフィール
+                  </button>
                   <button className="dropdown-item" onClick={() => { onLogout(); setShowDropdown(false) }}>
                     ログアウト
                   </button>

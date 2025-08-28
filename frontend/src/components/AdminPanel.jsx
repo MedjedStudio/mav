@@ -6,7 +6,6 @@ import { formatDateToUserTimezone } from '../utils/timezone'
 import AdminSidebar from './admin/AdminSidebar'
 import ContentForm from './admin/ContentForm'
 import CategoryForm from './admin/CategoryForm'
-import AdminProfileEdit from './admin/AdminProfileEdit'
 import FileManagement from './admin/FileManagement'
 import BackupManagement from './admin/BackupManagement'
 import UserManagement from './admin/UserManagement'
@@ -36,7 +35,7 @@ export function removeFirstImage(markdown) {
 }
 
 // 管理者パネル
-function AdminPanel({ user, onUpdate }) {
+function AdminPanel({ user }) {
   const [contents, setContents] = useState([])
   const [editingContent, setEditingContent] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -210,9 +209,7 @@ function AdminPanel({ user, onUpdate }) {
       />
 
       <div className="admin-main">
-        {activeView === 'profile' ? (
-          <AdminProfileEdit user={user} onUpdate={onUpdate} />
-        ) : activeView === 'backup' && user?.role === 'admin' ? (
+        {activeView === 'backup' && user?.role === 'admin' ? (
           <BackupManagement />
         ) : activeView === 'users' && user?.role === 'admin' ? (
           <UserManagement />

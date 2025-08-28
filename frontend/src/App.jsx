@@ -6,6 +6,7 @@ import SetupForm from './components/forms/SetupForm'
 import LoginForm from './components/forms/LoginForm'
 import AdminPanel from './components/AdminPanel'
 import PublicView from './components/PublicView'
+import ProfileView from './components/ProfileView'
 import { authService } from './services/auth'
 import { getToken, setToken, removeToken } from './utils/auth'
 import { updateUrl, parseContentIdFromPath } from './utils/navigation'
@@ -14,7 +15,7 @@ import { UserProvider } from './contexts/UserContext'
 function App() {
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [view, setView] = useState('public') // 'public', 'admin', 'setup'
+  const [view, setView] = useState('public') // 'public', 'admin', 'setup', 'profile'
   const [contentId, setContentId] = useState(null) // URL パラメータから取得するコンテンツID
   const [needsSetup, setNeedsSetup] = useState(false)
   const [resetCategoryTrigger, setResetCategoryTrigger] = useState(0)
@@ -51,6 +52,7 @@ function App() {
     try {
       const userData = await authService.checkAuth()
       setUser({ 
+        id: userData.id,           // Add the missing id field
         username: userData.username, 
         email: userData.email, 
         role: userData.role,
@@ -67,9 +69,18 @@ function App() {
   const handleLogin = async (email, password) => {
     try {
       const response = await authService.login(email, password)
-      const { access_token, username: userName, role } = response
+      const { access_token, role } = response
       setToken(access_token)
-      setUser({ username: userName, email: email, role })
+      // After login, fetch full user data to get the id field
+      const userData = await authService.checkAuth()
+      setUser({ 
+        id: userData.id,
+        username: userData.username, 
+        email: userData.email, 
+        role: userData.role,
+        profile: userData.profile,
+        timezone: userData.timezone || 1
+      })
       setShowLoginModal(false)
       setView(role === 'admin' ? 'admin' : 'public')
       return true
@@ -93,9 +104,18 @@ function App() {
   const handleSetup = async (email, username, password) => {
     try {
       const response = await authService.initialSetup(email, username, password)
-      const { access_token, username: userName, role } = response
+      const { access_token, role } = response
       setToken(access_token)
-      setUser({ username: userName, email: email, role })
+      // After setup, fetch full user data to get the id field
+      const userData = await authService.checkAuth()
+      setUser({ 
+        id: userData.id,
+        username: userData.username, 
+        email: userData.email, 
+        role: userData.role,
+        profile: userData.profile,
+        timezone: userData.timezone || 1
+      })
       setNeedsSetup(false)
       setView(role === 'admin' ? 'admin' : 'public')
       return true
@@ -117,6 +137,11 @@ function App() {
     setResetCategoryTrigger(prev => prev + 1) // カテゴリリセットをトリガー
   }
 
+  const handleProfileClick = () => {
+    setView('profile')
+  }
+
+
   if (isLoading) {
     return <div className="loading">読み込み中...</div>
   }
@@ -124,7 +149,7 @@ function App() {
   return (
     <UserProvider user={user} setUser={setUser}>
       <div className="app">
-        <Header user={user} onLogout={handleLogout} onHomeClick={handleHomeClick} />
+        <Header user={user} onLogout={handleLogout} onHomeClick={handleHomeClick} onProfileClick={handleProfileClick} onAdminClick={() => setView('admin')} />
         
         <main className="main-content">
           {view === 'setup' && (
@@ -132,7 +157,11 @@ function App() {
           )}
           
           {view === 'admin' && user && (user?.role === 'admin' || user?.role === 'member') && (
-            <AdminPanel user={user} onUpdate={setUser} />
+            <AdminPanel user={user} />
+          )}
+          
+          {view === 'profile' && user && (
+            <ProfileView user={user} onUpdate={setUser} />
           )}
           
           {view === 'public' && view !== 'setup' && !needsSetup && (

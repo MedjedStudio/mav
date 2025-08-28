@@ -134,12 +134,14 @@ class UserModel(Base):
     email = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(Integer, default=UserRole.MEMBER, nullable=False)
-    avatar_url = Column(String(500), nullable=True)
     profile = Column(Text, nullable=True)
     timezone = Column(Integer, default=UserTimezone.UTC, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+    # リレーション
+    avatar = relationship("AvatarModel", back_populates="user", uselist=False)
 
     __table_args__ = (
         UniqueConstraint('email', 'deleted_at', name='uq_email_deleted_at'),
@@ -187,3 +189,19 @@ class FileModel(Base):
 
     # リレーション
     uploader = relationship("UserModel")
+
+class AvatarModel(Base):
+    __tablename__ = "avatars"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True)
+    filename = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    mime_type = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+    # リレーション
+    user = relationship("UserModel", back_populates="avatar")
