@@ -143,16 +143,17 @@ async def upload_avatar(
         ).first()
         
         if existing_avatar:
+            # Remove old file before updating record
+            old_file_path = settings.UPLOAD_DIR / "avatars" / existing_avatar.filename
+            if old_file_path.exists():
+                old_file_path.unlink()
+            
             # Update existing avatar record
             existing_avatar.filename = unique_filename
             existing_avatar.original_filename = file.filename
             existing_avatar.file_size = file_size
             existing_avatar.mime_type = _get_mime_type(file_path)
             existing_avatar.updated_at = func.now()
-            # Remove old file
-            old_file_path = settings.UPLOAD_DIR / "avatars" / existing_avatar.filename
-            if old_file_path != file_path and old_file_path.exists():
-                old_file_path.unlink()
         else:
             # Create new avatar record
             avatar_record = AvatarModel(
