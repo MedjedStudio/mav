@@ -161,10 +161,10 @@ function UserManagement() {
   return (
     <div className="user-management">
       {showForm ? (
-        <div className="user-form-container">
+        <div className="content-form">
           <h3>{editingUser ? 'ユーザー編集' : '新規ユーザー作成'}</h3>
-          <form onSubmit={handleSubmit} className="user-form">
-            <div className="form-group">
+          <form onSubmit={handleSubmit}>
+            <div>
               <label>ユーザー名</label>
               <input
                 type="text"
@@ -174,7 +174,7 @@ function UserManagement() {
               />
             </div>
             
-            <div className="form-group">
+            <div>
               <label>メールアドレス</label>
               <input
                 type="email"
@@ -184,7 +184,7 @@ function UserManagement() {
               />
             </div>
             
-            <div className="form-group">
+            <div>
               <label>パスワード {editingUser && '（変更する場合のみ入力）'}</label>
               <input
                 type="password"
@@ -194,7 +194,7 @@ function UserManagement() {
               />
             </div>
             
-            <div className="form-group">
+            <div>
               <label>ロール</label>
               <select
                 value={formData.role}
@@ -209,11 +209,11 @@ function UserManagement() {
               )}
             </div>
             
-            <div className="form-actions">
-              <button type="submit" className="btn-primary">
+            <div className="form-buttons">
+              <button type="submit">
                 {editingUser ? '更新' : '作成'}
               </button>
-              <button type="button" onClick={resetForm} className="btn-secondary">
+              <button type="button" onClick={resetForm}>
                 キャンセル
               </button>
             </div>
