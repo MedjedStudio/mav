@@ -1,118 +1,21 @@
 """バックアップ・復元機能のAPIエンドポイント"""
 
-import os
-import json
-import zipfile
-import shutil
-from datetime import datetime
-from typing import Any, Dict
-from pathlib import Path
 import tempfile
+from pathlib import Path
+from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from infrastructure.persistence.database import get_db
-from infrastructure.persistence.models import ContentModel, CategoryModel, UserModel, UserRole, FileModel, AvatarModel
+from infrastructure.database import get_db
+from infrastructure.models import UserModel
 from presentation.api.auth_router import get_current_user
+from services.backup_service import BackupService
 
 router = APIRouter(prefix="/backup", tags=["backup"])
 
-def get_upload_directory() -> str:
-    """アップロードディレクトリのパスを取得"""
-    from config import settings
-    return str(settings.UPLOAD_DIR)
 
-def export_database_data(db: Session) -> Dict[str, Any]:
-    """データベースのデータをエクスポート"""
-    # ユーザーデータ（削除されたものも含む）
-    users = db.query(UserModel).all()
-    users_data = []
-    for user in users:
-        users_data.append({
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "password_hash": user.password_hash,
-            "role": user.role.value if hasattr(user.role, 'value') else user.role,
-            "profile": user.profile,
-            "timezone": user.timezone,
-            "created_at": user.created_at.isoformat(),
-            "updated_at": user.updated_at.isoformat(),
-            "deleted_at": user.deleted_at.isoformat() if user.deleted_at else None
-        })
-    
-    # カテゴリデータ（削除されたものも含む）
-    categories = db.query(CategoryModel).all()
-    categories_data = []
-    for category in categories:
-        categories_data.append({
-            "id": category.id,
-            "name": category.name,
-            "description": category.description,
-            "created_at": category.created_at.isoformat(),
-            "updated_at": category.updated_at.isoformat(),
-            "deleted_at": category.deleted_at.isoformat() if category.deleted_at else None
-        })
-    
-    # コンテンツデータ（削除されたものも含む）
-    contents = db.query(ContentModel).options(selectinload(ContentModel.categories)).all()
-    contents_data = []
-    for content in contents:
-        content_categories = [cat.name for cat in content.categories]
-        contents_data.append({
-            "id": content.id,
-            "title": content.title,
-            "content": content.content,
-            "categories": content_categories,
-            "is_published": content.is_published,
-            "author_id": content.author_id,
-            "created_at": content.created_at.isoformat(),
-            "updated_at": content.updated_at.isoformat(),
-            "deleted_at": content.deleted_at.isoformat() if content.deleted_at else None
-        })
-    
-    # ファイルデータ（削除されたものも含む）
-    files = db.query(FileModel).all()
-    files_data = []
-    for file in files:
-        files_data.append({
-            "id": file.id,
-            "filename": file.filename,
-            "original_filename": file.original_filename,
-            "file_size": file.file_size,
-            "mime_type": file.mime_type,
-            "uploaded_by": file.uploaded_by,
-            "created_at": file.created_at.isoformat(),
-            "deleted_at": file.deleted_at.isoformat() if file.deleted_at else None
-        })
-    
-    # アバターデータ（削除されたものも含む）
-    avatars = db.query(AvatarModel).all()
-    avatars_data = []
-    for avatar in avatars:
-        avatars_data.append({
-            "id": avatar.id,
-            "user_id": avatar.user_id,
-            "filename": avatar.filename,
-            "original_filename": avatar.original_filename,
-            "file_size": avatar.file_size,
-            "mime_type": avatar.mime_type,
-            "created_at": avatar.created_at.isoformat(),
-            "updated_at": avatar.updated_at.isoformat(),
-            "deleted_at": avatar.deleted_at.isoformat() if avatar.deleted_at else None
-        })
-    
-    return {
-        "users": users_data,
-        "categories": categories_data,
-        "contents": contents_data,
-        "files": files_data,
-        "avatars": avatars_data,
-        "exported_at": datetime.now().isoformat()
-    }
 
 @router.get("/download")
 async def download_backup(
@@ -120,41 +23,15 @@ async def download_backup(
     db: Session = Depends(get_db)
 ):
     """バックアップファイルをダウンロード"""
+    backup_service = BackupService(db)
+    
     try:
-        # 一時ディレクトリを作成（自動削除しない）
-        temp_dir = tempfile.mkdtemp()
-        backup_dir = Path(temp_dir) / "backup"
-        backup_dir.mkdir()
+        from config import settings
+        upload_dir = Path(settings.UPLOAD_DIR)
         
-        # データベースデータをエクスポート
-        db_data = export_database_data(db)
-        
-        # データベースデータをJSONファイルに保存
-        db_file = backup_dir / "database.json"
-        with open(db_file, 'w', encoding='utf-8') as f:
-            json.dump(db_data, f, ensure_ascii=False, indent=2)
-        
-        # アップロードファイルをコピー（.gitkeepファイルを除外）
-        upload_dir = Path(get_upload_directory())
-        if upload_dir.exists():
-            uploads_backup_dir = backup_dir / "uploads"
-            
-            def ignore_gitkeep(dir, files):
-                return [f for f in files if f.startswith('.')]
-            
-            shutil.copytree(upload_dir, uploads_backup_dir, ignore=ignore_gitkeep)
-        
-        # ZIPファイルを作成
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        zip_filename = f"mav_backup_{timestamp}.zip"
-        zip_path = Path(temp_dir) / zip_filename
-        
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for root, dirs, files in os.walk(backup_dir):
-                for file in files:
-                    file_path = Path(root) / file
-                    arcname = file_path.relative_to(backup_dir)
-                    zipf.write(file_path, arcname)
+        # バックアップファイルを作成
+        zip_path = backup_service.create_backup(upload_dir)
+        zip_filename = zip_path.name
         
         return FileResponse(
             path=str(zip_path),
@@ -165,102 +42,6 @@ async def download_backup(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"バックアップの作成に失敗しました: {str(e)}")
 
-def import_database_data(db: Session, data: Dict[str, Any]) -> None:
-    """データベースにデータをインポート"""
-    # 既存のデータをクリア（外部キー制約を考慮した正しい順序）
-    # 1. 中間テーブルを直接削除
-    db.execute(text("DELETE FROM content_categories"))
-    # 2. 外部キーを持つ子テーブルから削除
-    db.query(AvatarModel).delete()  # avatars（users.idを参照）
-    db.query(FileModel).delete()  # files（users.idを参照）
-    db.query(ContentModel).delete()  # contents
-    # 3. 参照される側のテーブル
-    db.query(CategoryModel).delete()  # categories
-    db.query(UserModel).delete()  # users
-    db.commit()
-    
-    # ユーザーデータを復元
-    for user_data in data.get("users", []):
-        user = UserModel(
-            id=user_data["id"],
-            username=user_data["username"],
-            email=user_data["email"],
-            password_hash=user_data["password_hash"],
-            role=UserRole(user_data["role"]),
-            profile=user_data.get("profile"),
-            timezone=user_data.get("timezone"),
-            created_at=datetime.fromisoformat(user_data["created_at"]),
-            updated_at=datetime.fromisoformat(user_data["updated_at"]),
-            deleted_at=datetime.fromisoformat(user_data["deleted_at"]) if user_data.get("deleted_at") else None
-        )
-        db.add(user)
-    
-    # カテゴリデータを復元
-    categories_map = {}
-    for category_data in data.get("categories", []):
-        category = CategoryModel(
-            id=category_data["id"],
-            name=category_data["name"],
-            description=category_data["description"],
-            created_at=datetime.fromisoformat(category_data["created_at"]),
-            updated_at=datetime.fromisoformat(category_data["updated_at"]),
-            deleted_at=datetime.fromisoformat(category_data["deleted_at"]) if category_data.get("deleted_at") else None
-        )
-        db.add(category)
-        categories_map[category_data["name"]] = category
-    
-    db.commit()  # カテゴリをコミットしてからコンテンツを作成
-    
-    # コンテンツデータを復元
-    for content_data in data.get("contents", []):
-        content = ContentModel(
-            id=content_data["id"],
-            title=content_data["title"],
-            content=content_data["content"],
-            is_published=content_data.get("is_published", False),
-            author_id=content_data["author_id"],
-            created_at=datetime.fromisoformat(content_data["created_at"]),
-            updated_at=datetime.fromisoformat(content_data["updated_at"]),
-            deleted_at=datetime.fromisoformat(content_data["deleted_at"]) if content_data.get("deleted_at") else None
-        )
-        
-        # カテゴリを関連付け
-        for cat_name in content_data.get("categories", []):
-            if cat_name in categories_map:
-                content.categories.append(categories_map[cat_name])
-        
-        db.add(content)
-    
-    # ファイルデータを復元
-    for file_data in data.get("files", []):
-        file_record = FileModel(
-            id=file_data["id"],
-            filename=file_data["filename"],
-            original_filename=file_data["original_filename"],
-            file_size=file_data["file_size"],
-            mime_type=file_data["mime_type"],
-            uploaded_by=file_data["uploaded_by"],
-            created_at=datetime.fromisoformat(file_data["created_at"]),
-            deleted_at=datetime.fromisoformat(file_data["deleted_at"]) if file_data.get("deleted_at") else None
-        )
-        db.add(file_record)
-    
-    # アバターデータを復元
-    for avatar_data in data.get("avatars", []):
-        avatar_record = AvatarModel(
-            id=avatar_data["id"],
-            user_id=avatar_data["user_id"],
-            filename=avatar_data["filename"],
-            original_filename=avatar_data["original_filename"],
-            file_size=avatar_data["file_size"],
-            mime_type=avatar_data["mime_type"],
-            created_at=datetime.fromisoformat(avatar_data["created_at"]),
-            updated_at=datetime.fromisoformat(avatar_data["updated_at"]),
-            deleted_at=datetime.fromisoformat(avatar_data["deleted_at"]) if avatar_data.get("deleted_at") else None
-        )
-        db.add(avatar_record)
-    
-    db.commit()
 
 @router.post("/restore")
 async def restore_backup(
@@ -269,10 +50,15 @@ async def restore_backup(
     db: Session = Depends(get_db)
 ):
     """バックアップファイルから復元"""
+    backup_service = BackupService(db)
+    
     try:
         # アップロードされたファイルがZIPかチェック
         if not file.filename.endswith('.zip'):
             raise HTTPException(status_code=400, detail="ZIPファイルをアップロードしてください")
+        
+        from config import settings
+        upload_dir = Path(settings.UPLOAD_DIR)
         
         # 一時ディレクトリを作成
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -282,55 +68,13 @@ async def restore_backup(
                 content = await file.read()
                 f.write(content)
             
-            # ZIPファイルを展開
-            extract_dir = Path(temp_dir) / "extracted"
-            with zipfile.ZipFile(zip_path, 'r') as zipf:
-                zipf.extractall(extract_dir)
-            
-            # データベースファイルを読み込み
-            db_file = extract_dir / "database.json"
-            if not db_file.exists():
-                raise HTTPException(status_code=400, detail="バックアップファイルが不正です（database.jsonが見つかりません）")
-            
-            with open(db_file, 'r', encoding='utf-8') as f:
-                db_data = json.load(f)
-            
-            # データベースを復元
-            import_database_data(db, db_data)
-            
-            # アップロードファイルを復元
-            uploads_backup_dir = extract_dir / "uploads"
-            upload_dir = Path(get_upload_directory())
-            
-            # アップロードディレクトリを作成（存在しない場合）
-            if not upload_dir.exists():
-                upload_dir.mkdir(parents=True, exist_ok=True)
-            
-            # バックアップからファイルを復元（階層構造を保持）
-            if uploads_backup_dir.exists():
-                # 必要なディレクトリ構造を確保
-                (upload_dir / "files").mkdir(exist_ok=True)
-                (upload_dir / "avatars").mkdir(exist_ok=True)
-                
-                # バックアップディレクトリ全体を復元
-                for root, dirs, files in os.walk(uploads_backup_dir):
-                    # 現在の相対パスを取得
-                    rel_path = Path(root).relative_to(uploads_backup_dir)
-                    target_dir = upload_dir / rel_path
-                    
-                    # ターゲットディレクトリを作成
-                    target_dir.mkdir(parents=True, exist_ok=True)
-                    
-                    # ファイルをコピー
-                    for file in files:
-                        if not file.startswith('.'):  # .gitkeepなどの隠しファイルは除外
-                            src_file = Path(root) / file
-                            target_file = target_dir / file
-                            if not target_file.exists():
-                                shutil.copy2(src_file, target_file)
+            # バックアップから復元
+            backup_service.restore_from_zip(zip_path, upload_dir)
         
         return {"message": "バックアップから正常に復元されました"}
     
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
@@ -342,35 +86,13 @@ async def get_backup_info(
     db: Session = Depends(get_db)
 ):
     """バックアップ情報を取得"""
-    try:
-        # データベース統計
-        user_count = db.query(UserModel).count()
-        category_count = db.query(CategoryModel).count()
-        content_count = db.query(ContentModel).count()
-        
-        # アップロードファイル統計
-        upload_dir = Path(get_upload_directory())
-        file_count = 0
-        total_size = 0
-        
-        if upload_dir.exists():
-            for file_path in upload_dir.rglob('*'):
-                if file_path.is_file() and not file_path.name.startswith('.'):
-                    file_count += 1
-                    total_size += file_path.stat().st_size
-        
-        return {
-            "database": {
-                "users": user_count,
-                "categories": category_count,
-                "contents": content_count
-            },
-            "files": {
-                "count": file_count,
-                "total_size": total_size,
-                "total_size_mb": round(total_size / (1024 * 1024), 2)
-            }
-        }
+    backup_service = BackupService(db)
     
+    try:
+        from config import settings
+        upload_dir = Path(settings.UPLOAD_DIR)
+        
+        return backup_service.get_backup_info(upload_dir)
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"バックアップ情報の取得に失敗しました: {str(e)}")

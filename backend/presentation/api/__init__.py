@@ -1,3 +1,2 @@
-from .user_router import router as user_router
-
-__all__ = ["user_router"]
+# Empty init file - no routers exported directly
+__all__ = []

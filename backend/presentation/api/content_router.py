@@ -1,20 +1,13 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import func
-from infrastructure.persistence.database import get_db
-from infrastructure.persistence.models import ContentModel, UserModel, CategoryModel
+from sqlalchemy.orm import Session
+from infrastructure.database import get_db
+from infrastructure.models import UserModel
 from presentation.api.auth_router import get_current_user, require_admin, require_authenticated
 from presentation.schemas.content_schemas import ContentCreate, ContentUpdate, ContentResponse
+from services.content_service import ContentService
 
 router = APIRouter()
-
-def get_category_names(content):
-    """コンテンツのカテゴリ名を取得し、空の場合は「未分類」を返す"""
-    category_names = [cat.name for cat in content.categories if cat.deleted_at is None]
-    if not category_names:
-        category_names = ["未分類"]
-    return category_names
 
 # 認証済みユーザー: コンテンツ作成
 @router.post("/", response_model=ContentResponse)
@@ -23,41 +16,41 @@ def create_content(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(require_authenticated)
 ):
-    content = ContentModel(
-        title=request.title,
-        content=request.content,
-        is_published=getattr(request, 'is_published', False),
-        author_id=current_user.id
-    )
-    db.add(content)
-    db.commit()
-    db.refresh(content)
+    content_service = ContentService(db)
     
-    # カテゴリを関連付け
-    if request.category_ids:
-        categories = db.query(CategoryModel).filter(
-            CategoryModel.id.in_(request.category_ids),
-            CategoryModel.deleted_at.is_(None)
-        ).all()
-        content.categories = categories
-    # カテゴリが指定されていない場合は何もしない（未分類として扱う）
-    
-    db.commit()
-    db.refresh(content)
-    
-    # カテゴリ名を含むレスポンスを生成
-    category_names = get_category_names(content)
-    
-    return ContentResponse(
-        id=content.id,
-        title=content.title,
-        content=content.content,
-        categories=category_names,
-        is_published=content.is_published,
-        author_name=current_user.username,
-        created_at=content.created_at,
-        updated_at=content.updated_at
-    )
+    try:
+        content = content_service.create_content(
+            title=request.title,
+            content=request.content,
+            author_id=current_user.id,
+            category_ids=request.category_ids,
+            is_published=getattr(request, 'is_published', False)
+        )
+        
+        # カテゴリ名を取得
+        category_names = ContentService.get_category_names(content)
+        
+        return ContentResponse(
+            id=content.id,
+            title=content.title,
+            content=content.content,
+            categories=category_names,
+            is_published=content.is_published,
+            author_name=current_user.username,
+            created_at=content.created_at,
+            updated_at=content.updated_at
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="コンテンツの作成に失敗しました"
+        )
 
 # 認証済みユーザー: コンテンツ更新
 @router.put("/{content_id}", response_model=ContentResponse)
@@ -67,57 +60,54 @@ def update_content(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(require_authenticated)
 ):
-    content = db.query(ContentModel).filter(
-        ContentModel.id == content_id,
-        ContentModel.deleted_at.is_(None)
-    ).first()
-    if not content:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="コンテンツが見つかりません"
-        )
+    content_service = ContentService(db)
     
-    # 権限チェック：管理者か作成者のみ編集可能
-    from infrastructure.persistence.models import UserRole
-    if current_user.role != UserRole.ADMIN and content.author_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="このコンテンツを編集する権限がありません"
+    try:
+        content = content_service.update_content(
+            content_id=content_id,
+            title=request.title,
+            content=request.content,
+            category_ids=request.category_ids,
+            is_published=getattr(request, 'is_published', None),
+            current_user=current_user
         )
-    
-    if request.title is not None:
-        content.title = request.title
-    if request.content is not None:
-        content.content = request.content
-    if hasattr(request, 'is_published') and request.is_published is not None:
-        content.is_published = request.is_published
-    if request.category_ids is not None:
-        # カテゴリを更新
-        if request.category_ids:
-            categories = db.query(CategoryModel).filter(
-                CategoryModel.id.in_(request.category_ids),
-                CategoryModel.deleted_at.is_(None)
-            ).all()
-            content.categories = categories
+        
+        # カテゴリ名を取得
+        category_names = ContentService.get_category_names(content)
+        
+        return ContentResponse(
+            id=content.id,
+            title=content.title,
+            content=content.content,
+            categories=category_names,
+            is_published=content.is_published,
+            author_name=current_user.username,
+            created_at=content.created_at,
+            updated_at=content.updated_at
+        )
+        
+    except ValueError as e:
+        # ビジネスルール違反やデータ不整合
+        if "権限" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=str(e)
+            )
+        elif "見つかりません" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
         else:
-            content.categories = []
-    
-    db.commit()
-    db.refresh(content)
-    
-    # カテゴリ名を含むレスポンスを生成
-    category_names = get_category_names(content)
-    
-    return ContentResponse(
-        id=content.id,
-        title=content.title,
-        content=content.content,
-        categories=category_names,
-        is_published=content.is_published,
-        author_name=current_user.username,
-        created_at=content.created_at,
-        updated_at=content.updated_at
-    )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="コンテンツの更新に失敗しました"
+        )
 
 # 認証済みユーザー: コンテンツ削除（論理削除）
 @router.delete("/{content_id}")
@@ -126,28 +116,41 @@ def delete_content(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(require_authenticated)
 ):
-    content = db.query(ContentModel).filter(
-        ContentModel.id == content_id,
-        ContentModel.deleted_at.is_(None)
-    ).first()
-    if not content:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="コンテンツが見つかりません"
-        )
+    content_service = ContentService(db)
     
-    # 権限チェック：管理者か作成者のみ削除可能
-    from infrastructure.persistence.models import UserRole
-    if current_user.role != UserRole.ADMIN and content.author_id != current_user.id:
+    try:
+        result = content_service.delete_content(content_id, current_user)
+        
+        if result:
+            return {"message": "コンテンツを削除しました"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="コンテンツが見つかりません"
+            )
+            
+    except ValueError as e:
+        # ビジネスルール違反やデータ不整合
+        if "権限" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=str(e)
+            )
+        elif "見つかりません" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="このコンテンツを削除する権限がありません"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="コンテンツの削除に失敗しました"
         )
-    
-    from datetime import datetime
-    content.deleted_at = datetime.utcnow()
-    db.commit()
-    return {"message": "コンテンツを削除しました"}
 
 # 認証済みユーザー: 全コンテンツ一覧（管理画面用）
 @router.get("/admin", response_model=List[ContentResponse])
@@ -155,70 +158,119 @@ def get_all_contents_admin(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(require_authenticated)
 ):
-    from infrastructure.persistence.models import UserRole
+    content_service = ContentService(db)
     
-    query = db.query(ContentModel, UserModel.username).join(
-        UserModel, ContentModel.author_id == UserModel.id
-    ).options(
-        selectinload(ContentModel.categories)
-    ).filter(
-        ContentModel.deleted_at.is_(None)
-    )
-    
-    # 権限に応じたフィルタリング
-    if current_user.role == UserRole.ADMIN:
-        # 管理者は全てのコンテンツを表示
-        results = query.order_by(ContentModel.created_at.desc()).all()
-    else:
-        # メンバーは自分のコンテンツのみ表示
-        results = query.filter(
-            ContentModel.author_id == current_user.id
-        ).order_by(ContentModel.created_at.desc()).all()
-    
-    # カテゴリ名を含むレスポンスを生成
-    result = []
-    for content, author_name in results:
-        category_names = get_category_names(content)
+    try:
+        # コンテンツ一覧を取得（権限に応じてフィルタリング）
+        results = content_service.get_all_contents_for_admin(current_user)
         
-        result.append(ContentResponse(
-            id=content.id,
-            title=content.title,
-            content=content.content,
-            categories=category_names,
-            is_published=content.is_published,
-            author_name=author_name,
-            created_at=content.created_at,
-            updated_at=content.updated_at
-        ))
-    
-    return result
+        # エンティティをレスポンスに変換
+        result_list = []
+        for content, author_name in results:
+            # カテゴリ名を取得
+            category_names = ContentService.get_category_names(content)
+            # レスポンスに変換
+            content_response = ContentResponse(
+                id=content.id,
+                title=content.title,
+                content=content.content,
+                categories=category_names,
+                is_published=content.is_published,
+                author_name=author_name,
+                created_at=content.created_at,
+                updated_at=content.updated_at
+            )
+            result_list.append(content_response)
+        
+        return result_list
+        
+    except ValueError as e:
+        if "アクセス" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=str(e)
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="コンテンツ一覧の取得に失敗しました"
+        )
 
 # 公開: カテゴリ一覧
 @router.get("/categories", response_model=List[str])
 def get_categories(db: Session = Depends(get_db)):
-    categories = db.query(CategoryModel.name).filter(
-        CategoryModel.deleted_at.is_(None)
-    ).all()
-    return [cat[0] for cat in categories]
+    content_service = ContentService(db)
+    
+    try:
+        return content_service.get_categories()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="カテゴリ一覧の取得に失敗しました"
+        )
 
 # 公開: 全コンテンツ一覧（一般ユーザー用）
 @router.get("/", response_model=List[ContentResponse])
 def get_contents(db: Session = Depends(get_db)):
-    results = db.query(ContentModel, UserModel.username).join(
-        UserModel, ContentModel.author_id == UserModel.id
-    ).options(
-        selectinload(ContentModel.categories)
-    ).filter(
-        ContentModel.deleted_at.is_(None),
-        ContentModel.is_published == True
-    ).order_by(ContentModel.created_at.desc()).all()
+    content_service = ContentService(db)
     
-    # カテゴリ名を含むレスポンスを生成
-    result = []
-    for content, author_name in results:
-        category_names = get_category_names(content)
+    try:
+        # 公開されたコンテンツ一覧を取得
+        results = content_service.get_published_contents()
         
-        result.append(ContentResponse(
+        # エンティティをレスポンスに変換
+        result_list = []
+        for content, author_name in results:
+            # カテゴリ名を取得
+            category_names = ContentService.get_category_names(content)
+            # レスポンスに変換
+            content_response = ContentResponse(
+                id=content.id,
+                title=content.title,
+                content=content.content,
+                categories=category_names,
+                is_published=content.is_published,
+                author_name=author_name,
+                created_at=content.created_at,
+                updated_at=content.updated_at
+            )
+            result_list.append(content_response)
+        
+        return result_list
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="コンテンツ一覧の取得に失敗しました"
+        )
+
+# 公開: 個別コンテンツ取得
+@router.get("/{content_id}", response_model=ContentResponse)
+def get_content(content_id: int, db: Session = Depends(get_db)):
+    content_service = ContentService(db)
+    
+    try:
+        # 公開されたコンテンツを取得
+        result = content_service.get_published_content_with_author(content_id)
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="コンテンツが見つかりません"
+            )
+        
+        content, author_name = result
+        
+        # カテゴリ名を取得
+        category_names = ContentService.get_category_names(content)
+        
+        # エンティティをレスポンスに変換
+        return ContentResponse(
             id=content.id,
             title=content.title,
             content=content.content,
@@ -227,38 +279,13 @@ def get_contents(db: Session = Depends(get_db)):
             author_name=author_name,
             created_at=content.created_at,
             updated_at=content.updated_at
-        ))
-    
-    return result
-
-# 公開: 個別コンテンツ取得
-@router.get("/{content_id}", response_model=ContentResponse)
-def get_content(content_id: int, db: Session = Depends(get_db)):
-    result = db.query(ContentModel, UserModel.username).join(
-        UserModel, ContentModel.author_id == UserModel.id
-    ).options(
-        selectinload(ContentModel.categories)
-    ).filter(
-        ContentModel.id == content_id,
-        ContentModel.deleted_at.is_(None),
-        ContentModel.is_published == True
-    ).first()
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="コンテンツが見つかりません"
         )
-    
-    content, author_name = result
-    category_names = [cat.name for cat in content.categories if cat.deleted_at is None]
-    
-    return ContentResponse(
-        id=content.id,
-        title=content.title,
-        content=content.content,
-        categories=category_names,
-        is_published=content.is_published,
-        author_name=author_name,
-        created_at=content.created_at,
-        updated_at=content.updated_at
-    )
+        
+    except HTTPException:
+        # HTTPExceptionは再スロー
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="コンテンツの取得に失敗しました"
+        )

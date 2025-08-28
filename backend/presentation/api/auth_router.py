@@ -4,24 +4,23 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from config import settings
-from infrastructure.persistence.database import get_db
-from infrastructure.persistence.models import UserModel, UserRole
+from infrastructure.database import get_db
+from infrastructure.models import UserModel, UserRole
 from presentation.schemas.auth_schemas import LoginRequest, SetupRequest, LoginResponse, UserInfo
 from presentation.schemas.user_profile_schemas import UserProfileUpdate, PasswordChange, UserProfile
 from utils.auth_utils import verify_password, create_access_token, verify_token, hash_password
 from utils.response_utils import create_error_response
+from services.user_service import UserService
 
 router = APIRouter()
 security = HTTPBearer()
 
 @router.post("/login", response_model=LoginResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(UserModel).filter(
-        UserModel.email == request.email,
-        UserModel.deleted_at.is_(None)
-    ).first()
+    user_service = UserService(db)
+    user = user_service.authenticate_user(request.email, request.password)
     
-    if not user or not verify_password(request.password, user.password_hash):
+    if not user:
         raise create_error_response(
             status.HTTP_401_UNAUTHORIZED,
             "Invalid credentials"
@@ -53,10 +52,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             "Invalid token payload"
         )
     
-    user = db.query(UserModel).filter(
-        UserModel.email == email,
-        UserModel.deleted_at.is_(None)
-    ).first()
+    user_service = UserService(db)
+    user = user_service.get_user_by_email(email)
     if user is None:
         raise create_error_response(
             status.HTTP_401_UNAUTHORIZED,
@@ -99,46 +96,41 @@ def update_profile(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
 ):
-    # メールアドレスの重複チェック
+    user_service = UserService(db)
     email_changed = False
-    if profile_data.email and profile_data.email != current_user.email:
-        existing_user = db.query(UserModel).filter(
-            UserModel.email == profile_data.email,
-            UserModel.deleted_at.is_(None),
-            UserModel.id != current_user.id
-        ).first()
-        if existing_user:
-            raise create_error_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Email address is already in use"
-            )
-        email_changed = True
     
-    # ユーザー名の重複チェック
-    if profile_data.username and profile_data.username != current_user.username:
-        existing_user = db.query(UserModel).filter(
-            UserModel.username == profile_data.username,
-            UserModel.deleted_at.is_(None),
-            UserModel.id != current_user.id
-        ).first()
-        if existing_user:
-            raise create_error_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Username is already in use"
-            )
-
-    # プロファイル更新
-    if profile_data.username is not None:
-        current_user.username = profile_data.username
-    if profile_data.email is not None:
-        current_user.email = profile_data.email
-    if profile_data.profile is not None:
-        current_user.profile = profile_data.profile
-    if profile_data.timezone is not None:
-        current_user.timezone = profile_data.timezone
-    
-    db.commit()
-    db.refresh(current_user)
+    try:
+        # メールアドレス変更チェック
+        if profile_data.email and profile_data.email != current_user.email:
+            email_changed = True
+        
+        # プロファイル更新（重複チェック含む）
+        updated_user = user_service.update_user(
+            user_id=current_user.id,
+            username=profile_data.username,
+            email=profile_data.email,
+            role=None
+        )
+        
+        # プロファイルとタイムゾーン更新
+        updated_user = user_service.update_profile(
+            user_id=current_user.id,
+            profile=profile_data.profile
+        )
+        
+        # タイムゾーン更新（直接DB操作）
+        if profile_data.timezone is not None:
+            updated_user.timezone = profile_data.timezone
+            db.commit()
+            db.refresh(updated_user)
+        
+        current_user = updated_user
+        
+    except ValueError as e:
+        raise create_error_response(
+            status.HTTP_400_BAD_REQUEST,
+            str(e)
+        )
     
     # メールアドレスが変更された場合は新しいトークンを発行
     response_data = {
@@ -162,67 +154,52 @@ def change_password(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
 ):
-    # Verify current password
-    if not verify_password(password_data.current_password, current_user.password_hash):
+    user_service = UserService(db)
+    
+    try:
+        user_service.change_password(
+            user_id=current_user.id,
+            current_password=password_data.current_password,
+            new_password=password_data.new_password
+        )
+        return {"message": "Password changed successfully"}
+    except ValueError as e:
         raise create_error_response(
             status.HTTP_400_BAD_REQUEST,
-            "Current password is incorrect"
+            str(e)
         )
-    
-    # Hash and save new password
-    current_user.password_hash = hash_password(password_data.new_password)
-    db.commit()
-    
-    return {"message": "Password changed successfully"}
 
 @router.get("/setup-status")
 def check_setup_status(db: Session = Depends(get_db)):
     """初期セットアップが必要かどうかをチェック"""
-    admin_count = db.query(UserModel).filter(
-        UserModel.role == UserRole.ADMIN,
-        UserModel.deleted_at.is_(None)
-    ).count()
-    
-    return {"needs_setup": admin_count == 0}
+    user_service = UserService(db)
+    return {"needs_setup": user_service.is_initial_setup_needed()}
 
 @router.post("/initial-setup")
 def initial_setup(request: SetupRequest, db: Session = Depends(get_db)):
     """初期管理者ユーザーのセットアップ"""
-    # 既に管理者がいる場合はエラー
-    admin_count = db.query(UserModel).filter(
-        UserModel.role == UserRole.ADMIN,
-        UserModel.deleted_at.is_(None)
-    ).count()
+    user_service = UserService(db)
     
-    if admin_count > 0:
+    # 既に管理者がいる場合はエラー
+    if not user_service.is_initial_setup_needed():
         raise create_error_response(
             status.HTTP_400_BAD_REQUEST,
             "Admin account already exists"
         )
     
-    
-    # メールアドレスの重複チェック
-    existing_user = db.query(UserModel).filter(
-        UserModel.email == request.email,
-        UserModel.deleted_at.is_(None)
-    ).first()
-    if existing_user:
+    try:
+        # 初期管理者ユーザーを作成
+        admin_user = user_service.create_user(
+            username=request.username,
+            email=request.email,
+            password=request.password,
+            role=UserRole.ADMIN
+        )
+    except ValueError as e:
         raise create_error_response(
             status.HTTP_400_BAD_REQUEST,
-            "Email address is already in use"
+            str(e)
         )
-    
-    # 初期管理者ユーザーを作成
-    admin_user = UserModel(
-        username=request.username,
-        email=request.email,
-        password_hash=hash_password(request.password),
-        role=UserRole.ADMIN
-    )
-    
-    db.add(admin_user)
-    db.commit()
-    db.refresh(admin_user)
     
     # Generate login token
     access_token = create_access_token(data={"sub": admin_user.email})

@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from infrastructure.persistence.database import get_db
-from infrastructure.persistence.models import UserModel, UserRole
+from infrastructure.database import get_db
+from infrastructure.models import UserModel, UserRole
 from presentation.schemas.auth_schemas import UserResponse, UserCreate, UserUpdate
 from presentation.api.auth_router import get_current_user, require_admin
 from utils.auth_utils import hash_password
@@ -173,44 +173,28 @@ async def update_user(
             "Role must be 'admin' or 'member'"
         )
     
-    # メールアドレスの重複チェック
-    if user_data.email and user_data.email != user.email:
-        existing_user = db.query(UserModel).filter(
-            UserModel.email == user_data.email,
-            UserModel.deleted_at.is_(None),
-            UserModel.id != user_id
-        ).first()
-        if existing_user:
-            raise create_error_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Email address is already in use"
-            )
+    user_service = UserService(db)
     
-    # ユーザー名の重複チェック
-    if user_data.username and user_data.username != user.username:
-        existing_user = db.query(UserModel).filter(
-            UserModel.username == user_data.username,
-            UserModel.deleted_at.is_(None),
-            UserModel.id != user_id
-        ).first()
-        if existing_user:
-            raise create_error_response(
-                status.HTTP_400_BAD_REQUEST,
-                "Username is already in use"
-            )
-    
-    # ユーザー情報を更新
-    if user_data.username is not None:
-        user.username = user_data.username
-    if user_data.email is not None:
-        user.email = user_data.email
-    if user_data.password is not None:
-        user.password_hash = hash_password(user_data.password)
-    if user_data.role is not None:
-        user.role = UserRole.ADMIN if user_data.role == "admin" else UserRole.MEMBER
-    
-    db.commit()
-    db.refresh(user)
+    try:
+        # ユーザー情報を更新
+        user = user_service.update_user(
+            user_id=user_id,
+            username=user_data.username,
+            email=user_data.email,
+            role=UserRole.ADMIN if user_data.role == "admin" else UserRole.MEMBER if user_data.role else None
+        )
+        
+        # パスワード更新は別途処理
+        if user_data.password is not None:
+            user.password_hash = hash_password(user_data.password)
+            db.commit()
+            db.refresh(user)
+            
+    except ValueError as e:
+        raise create_error_response(
+            status.HTTP_400_BAD_REQUEST,
+            str(e)
+        )
     
     return UserResponse(
         id=user.id,
@@ -258,9 +242,11 @@ async def delete_user(
             )
     
     # 論理削除
-    from datetime import datetime
-    user.deleted_at = datetime.now()
-    
-    db.commit()
+    success = user_service.delete_user(user_id)
+    if not success:
+        raise create_error_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "Failed to delete user"
+        )
     
     return {"message": "User deleted successfully"}

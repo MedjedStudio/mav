@@ -28,40 +28,34 @@ FastAPI + React + MySQLを使用したコンテンツ管理システムです。
 
 ```
 mav/
-├── backend/                        # FastAPI アプリケーション
+├── backend/                        # FastAPI アプリケーション（Service Layer Pattern）
 │   ├── app.py                     # FastAPIメインアプリ
 │   ├── config.py                  # アプリケーション設定
 │   ├── migrate.sh                 # データベースマイグレーションスクリプト
 │   ├── logs/                      # アプリケーションログ
-│   ├── application/               # アプリケーション層
-│   │   ├── dto/                   # データ転送オブジェクト
-│   │   ├── services/              # アプリケーションサービス
-│   │   └── use_cases/             # ユースケース
-│   ├── domain/                    # ドメイン層
-│   │   ├── entities/              # エンティティ
-│   │   ├── repositories/          # リポジトリインターフェース
-│   │   └── value_objects/         # 値オブジェクト
-│   ├── infrastructure/            # インフラストラクチャ層
-│   │   ├── auth.py                # 認証インフラ
-│   │   ├── persistence/           # データベース関連
-│   │   │   ├── database.py        # DB接続設定
-│   │   │   └── models.py          # SQLAlchemyモデル
-│   │   └── repositories/          # リポジトリ実装
+│   ├── services/                  # ビジネスロジック層
+│   │   ├── user_service.py        # ユーザー関連ビジネスロジック
+│   │   ├── content_service.py     # コンテンツ関連ビジネスロジック
+│   │   ├── category_service.py    # カテゴリ関連ビジネスロジック
+│   │   ├── file_service.py        # ファイル関連ビジネスロジック
+│   │   └── backup_service.py      # バックアップ関連ビジネスロジック
 │   ├── presentation/              # プレゼンテーション層
-│   │   ├── api/                   # APIルーター
-│   │   │   ├── auth_router.py     # 認証API
-│   │   │   ├── backup_router.py   # バックアップAPI
-│   │   │   ├── category_router.py # カテゴリAPI
+│   │   ├── api/                   # APIルーター（Service層呼び出し）
+│   │   │   ├── auth_router.py     # 認証・プロフィールAPI
+│   │   │   ├── user_management_router.py # ユーザー管理API
 │   │   │   ├── content_router.py  # コンテンツAPI
+│   │   │   ├── category_router.py # カテゴリAPI
 │   │   │   ├── upload_router.py   # ファイルアップロードAPI
-│   │   │   ├── user_router.py     # ユーザーAPI
-│   │   │   └── user_management_router.py # ユーザー管理API
+│   │   │   └── backup_router.py   # バックアップAPI
 │   │   └── schemas/               # リクエスト/レスポンススキーマ
 │   │       ├── auth_schemas.py    # 認証スキーマ
 │   │       ├── category_schemas.py# カテゴリスキーマ
 │   │       ├── content_schemas.py # コンテンツスキーマ
 │   │       ├── user_schemas.py    # ユーザースキーマ
 │   │       └── user_profile_schemas.py # ユーザープロフィールスキーマ
+│   ├── infrastructure/            # データアクセス層（フラット化）
+│   │   ├── database.py           # DB接続設定
+│   │   └── models.py             # SQLAlchemyモデル
 │   ├── utils/                     # ユーティリティ
 │   │   ├── auth_utils.py          # 認証ユーティリティ
 │   │   ├── file_utils.py          # ファイルユーティリティ
