@@ -60,6 +60,7 @@ mav/
 │   │   ├── auth_utils.py          # 認証ユーティリティ
 │   │   ├── file_utils.py          # ファイルユーティリティ
 │   │   └── response_utils.py      # レスポンスユーティリティ
+│   ├── uploads/                   # アップロードファイル保存先
 │   ├── alembic/                   # データベースマイグレーション
 │   ├── requirements.txt           # Python依存関係
 │   └── Dockerfile                 # Docker設定
@@ -88,7 +89,6 @@ mav/
 │   └── mav.conf                  # 本番環境用Nginx設定
 ├── systemd/                       # systemdサービス設定
 │   └── mav-backend.service       # バックエンドサービス設定
-├── uploads/                       # アップロードファイル保存先
 ├── docker-compose.yml             # 開発環境用Docker構成
 └── README.md                      # プロジェクト説明
 ```
@@ -470,7 +470,7 @@ CORS_ORIGINS=https://mav.your-domain.com
 VITE_API_URL=https://mav.your-domain.com/api
 
 # アップロード設定
-UPLOAD_DIR=/var/source/mav/uploads
+UPLOAD_DIR=/var/source/mav/backend/uploads
 ```
 
 **重要:** 本番環境では、バックエンドアプリケーション、データベースマイグレーション、フロントエンドビルドすべてが **プロジェクトルート（mav/）の .env ファイル** を参照するように統一されています。
