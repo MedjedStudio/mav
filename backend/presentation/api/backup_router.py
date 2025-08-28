@@ -306,18 +306,28 @@ async def restore_backup(
             if not upload_dir.exists():
                 upload_dir.mkdir(parents=True, exist_ok=True)
             
-            # バックアップからファイルを復元（既存ファイルは保持）
+            # バックアップからファイルを復元（階層構造を保持）
             if uploads_backup_dir.exists():
-                for item in uploads_backup_dir.iterdir():
-                    if item.is_file():
-                        # 同名ファイルが存在しない場合のみコピー
-                        target_file = upload_dir / item.name
-                        if not target_file.exists():
-                            shutil.copy2(item, target_file)
-                    elif item.is_dir():
-                        target_dir = upload_dir / item.name
-                        if not target_dir.exists():
-                            shutil.copytree(item, target_dir)
+                # 必要なディレクトリ構造を確保
+                (upload_dir / "files").mkdir(exist_ok=True)
+                (upload_dir / "avatars").mkdir(exist_ok=True)
+                
+                # バックアップディレクトリ全体を復元
+                for root, dirs, files in os.walk(uploads_backup_dir):
+                    # 現在の相対パスを取得
+                    rel_path = Path(root).relative_to(uploads_backup_dir)
+                    target_dir = upload_dir / rel_path
+                    
+                    # ターゲットディレクトリを作成
+                    target_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    # ファイルをコピー
+                    for file in files:
+                        if not file.startswith('.'):  # .gitkeepなどの隠しファイルは除外
+                            src_file = Path(root) / file
+                            target_file = target_dir / file
+                            if not target_file.exists():
+                                shutil.copy2(src_file, target_file)
         
         return {"message": "バックアップから正常に復元されました"}
     
