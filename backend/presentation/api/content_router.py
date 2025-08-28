@@ -1,5 +1,5 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func
 from infrastructure.persistence.database import get_db
@@ -201,33 +201,17 @@ def get_categories(db: Session = Depends(get_db)):
     ).all()
     return [cat[0] for cat in categories]
 
-# 公開: コンテンツ一覧（一般ユーザー用）
+# 公開: 全コンテンツ一覧（一般ユーザー用）
 @router.get("/", response_model=List[ContentResponse])
-def get_contents(
-    category: Optional[str] = Query(None, description="カテゴリでフィルタ"), 
-    db: Session = Depends(get_db)
-):
-    query = db.query(ContentModel, UserModel.username).join(
+def get_contents(db: Session = Depends(get_db)):
+    results = db.query(ContentModel, UserModel.username).join(
         UserModel, ContentModel.author_id == UserModel.id
     ).options(
         selectinload(ContentModel.categories)
     ).filter(
         ContentModel.deleted_at.is_(None),
         ContentModel.is_published == True
-    )
-    
-    if category:
-        # カテゴリ名でフィルタ（多対多関係）
-        category_obj = db.query(CategoryModel).filter(
-            CategoryModel.name == category,
-            CategoryModel.deleted_at.is_(None)
-        ).first()
-        if category_obj:
-            query = query.join(ContentModel.categories).filter(
-                CategoryModel.id == category_obj.id
-            )
-    
-    results = query.order_by(ContentModel.created_at.desc()).all()
+    ).order_by(ContentModel.created_at.desc()).all()
     
     # カテゴリ名を含むレスポンスを生成
     result = []

@@ -52,7 +52,7 @@ function PublicView({ contentId, setContentId, resetCategory }) {
   const loadContents = async () => {
     try {
       const url = selectedCategory 
-        ? `${API_BASE_URL}/contents/?category=${encodeURIComponent(selectedCategory)}`
+        ? `${API_BASE_URL}/categories/${selectedCategory.id}/contents`
         : `${API_BASE_URL}/contents/`
       const response = await axios.get(url)
       const allContents = response.data
@@ -79,7 +79,7 @@ function PublicView({ contentId, setContentId, resetCategory }) {
   const loadCategories = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/categories/`)
-      setCategories(response.data.map(cat => cat.name))
+      setCategories(response.data) // ID付きのオブジェクトとして保持
     } catch (error) {
     }
   }
@@ -179,15 +179,15 @@ function PublicView({ contentId, setContentId, resetCategory }) {
               </button>
             </li>
             {categories.map(category => (
-              <li key={category}>
+              <li key={category.id}>
                 <button 
-                  className={selectedCategory === category ? 'active' : ''}
+                  className={selectedCategory?.id === category.id ? 'active' : ''}
                   onClick={() => { 
                     setSelectedCategory(category)
                     handleBackToTimeline()
                   }}
                 >
-                  {category}
+                  {category.name}
                 </button>
               </li>
             ))}
@@ -323,12 +323,12 @@ function PublicView({ contentId, setContentId, resetCategory }) {
             </button>
           </li>
           {categories.map(category => (
-            <li key={category}>
+            <li key={category.id}>
               <button 
-                className={selectedCategory === category ? 'active' : ''}
+                className={selectedCategory?.id === category.id ? 'active' : ''}
                 onClick={() => setSelectedCategory(category)}
               >
-                {category}
+                {category.name}
               </button>
             </li>
           ))}

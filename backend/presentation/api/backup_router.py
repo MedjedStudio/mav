@@ -310,7 +310,7 @@ async def get_backup_info(
         
         if upload_dir.exists():
             for file_path in upload_dir.rglob('*'):
-                if file_path.is_file():
+                if file_path.is_file() and not file_path.name.startswith('.'):
                     file_count += 1
                     total_size += file_path.stat().st_size
         
