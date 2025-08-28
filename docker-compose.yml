@@ -50,7 +50,6 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - ${PWD}/uploads:/app/uploads
     environment:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
@@ -63,7 +62,7 @@ services:
       - DEBUG=${DEBUG}
       - HOST=0.0.0.0
       - PORT=8000
-      - UPLOAD_DIR=${UPLOAD_DIR}
+      - UPLOAD_DIR=/app/uploads
     networks:
       - mav-network
     depends_on:

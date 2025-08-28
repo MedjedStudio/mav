@@ -71,12 +71,12 @@ alembic/versions/*
 backend/output/
 
 # Uploaded files
-uploads/**/*
-!uploads/.gitkeep
-!uploads/files/
-!uploads/files/.gitkeep
-!uploads/avatars/
-!uploads/avatars/.gitkeep
+backend/uploads/**/*
+!backend/uploads/.gitkeep
+!backend/uploads/files/
+!backend/uploads/files/.gitkeep
+!backend/uploads/avatars/
+!backend/uploads/avatars/.gitkeep
 
 # Claude development notes
 .claude_notes.md
