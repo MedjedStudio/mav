@@ -16,6 +16,7 @@ function ProfileAvatar({ user, onUpdate }) {
     message: '',
     type: 'success'
   })
+  const [isDragActive, setIsDragActive] = useState(false)
 
   // アバター情報を取得
   const fetchAvatar = async () => {
@@ -49,34 +50,54 @@ function ProfileAvatar({ user, onUpdate }) {
     }
   }, [user])
 
-  // アバター画像選択ハンドラー
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      // ファイルサイズチェック（10MB）
-      if (file.size > 10 * 1024 * 1024) {
-        setError('ファイルサイズが大きすぎます。10MB以下のファイルを選択してください。')
-        return
-      }
-      
-      // ファイル形式チェック
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-      if (!allowedTypes.includes(file.type)) {
-        setError('サポートされていない画像形式です。JPEG、PNG、GIF、WebP形式を使用してください。')
-        return
-      }
-      
-      setAvatarFile(file)
-      setError('')
-      
-      // プレビュー用のURL生成
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setAvatarPreview(e.target.result)
-      }
-      reader.readAsDataURL(file)
+  // ファイルバリデーション＆プレビュー生成
+  const handleFile = (file) => {
+    if (!file) return;
+    // ファイルサイズチェック（10MB）
+    if (file.size > 10 * 1024 * 1024) {
+      setError('ファイルサイズが大きすぎます。10MB以下のファイルを選択してください。')
+      return;
     }
-  }
+    // ファイル形式チェック
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setError('サポートされていない画像形式です。JPEG、PNG、GIF、WebP形式を使用してください。')
+      return;
+    }
+    setAvatarFile(file);
+    setError('');
+    // プレビュー用のURL生成
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setAvatarPreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // inputからの画像選択
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    handleFile(file);
+  };
+
+  // ドラッグ＆ドロップ
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+  };
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+  };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    handleFile(file);
+  };
 
   // アバターをアップロード
   const uploadAvatar = async () => {
@@ -127,11 +148,24 @@ function ProfileAvatar({ user, onUpdate }) {
       })
       setIsEditing(false)
       setAvatarFile(null)
-      
-      // 親コンポーネントに通知（ユーザー情報は変更しない）
-      if (onUpdate && typeof onUpdate === 'function') {
-        // アバター更新は既存のユーザー情報に影響しないため、何も渡さない
-        // onUpdate()
+
+      // 親コンポーネントに通知（user.profile.avatar_urlを新URLで更新）
+      if (onUpdate && typeof onUpdate === 'function' && newAvatarUrl) {
+        // user.profileがオブジェクトならavatar_urlのみ上書き、文字列ならuser直下にavatar_urlを追加
+        if (user.profile && typeof user.profile === 'object') {
+          onUpdate({
+            ...user,
+            profile: {
+              ...user.profile,
+              avatar_url: newAvatarUrl
+            }
+          })
+        } else {
+          onUpdate({
+            ...user,
+            avatar_url: newAvatarUrl
+          })
+        }
       }
     } catch (error) {
       setError(error.message)
@@ -211,93 +245,111 @@ function ProfileAvatar({ user, onUpdate }) {
     <div className="profile-avatar-section">
       {message && <div className="success">{message}</div>}
       {error && <div className="error">{error}</div>}
-      
+
       <div className="avatar-controls">
         <h4>プロフィール画像</h4>
       </div>
-      
-      <div className="avatar-display">
-        {avatarPreview ? (
-          <img 
-            src={avatarPreview.startsWith('http') || avatarPreview.startsWith('data:') ? 
-                  avatarPreview : 
-                  `${API_BASE_URL}${avatarPreview}`} 
-            alt="アバタープレビュー"
-            style={{
+
+      <div
+        className="avatar-display"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        style={{
+          border: isDragActive ? '1.5px dashed #0969da' : '1.5px dashed #d0d7de',
+          background: isDragActive ? '#f6f8fa' : '#ffffff',
+          width: '100%',
+          minHeight: '220px',
+          padding: '24px 0',
+          borderRadius: '8px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 0 16px 0',
+          boxShadow: '0 1.5px 4px rgba(27,31,35,0.04)',
+          position: 'relative',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+        }}
+        title="画像をドラッグ＆ドロップでアップロードできます"
+      >
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',flex:1,width:'100%'}}>
+          {avatarPreview ? (
+            <img
+              src={avatarPreview.startsWith('http') || avatarPreview.startsWith('data:') ?
+                avatarPreview :
+                `${API_BASE_URL}${avatarPreview}`}
+              alt="アバタープレビュー"
+              style={{
+                width: '120px',
+                height: '120px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid #e9ecef',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                marginBottom: '12px',
+              }}
+            />
+          ) : (
+            <div style={{
               width: '120px',
               height: '120px',
               borderRadius: '50%',
-              objectFit: 'cover',
-              border: '4px solid #e9ecef',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-            }}
+              backgroundColor: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#6c757d',
+              fontSize: '15px',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+              marginBottom: '12px',
+            }}>
+              未設定
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            style={{ display: 'none' }}
+            id="avatar-upload"
           />
-        ) : (
-          <div style={{
-            width: '120px',
-            height: '120px',
-            borderRadius: '50%',
-            backgroundColor: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '4px solid #e9ecef',
-            color: '#6c757d',
-            fontSize: '14px',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-          }}>
-            未設定
+          <label
+            htmlFor="avatar-upload"
+            style={{
+              display: 'inline-block',
+              padding: '8px 20px',
+              background: '#f6f8fa',
+              color: '#24292f',
+              border: '1px solid #d0d7de',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              marginBottom: '6px',
+            }}
+          >
+            画像を選択
+          </label>
+          <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '0', textAlign:'center' }}>
+            JPEG、PNG、GIF、WebP形式（最大10MB）<br />
+            または画像をドラッグ＆ドロップ
           </div>
-        )}
-      </div>
-      
-      <div style={{ textAlign: 'center' }}>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleAvatarChange}
-          style={{ display: 'none' }}
-          id="avatar-upload"
-        />
-        <label 
-          htmlFor="avatar-upload"
-          style={{
-            display: 'inline-block',
-            padding: '10px 20px',
-            background: '#f6f8fa',
-            color: '#24292f',
-            border: '1px solid #d0d7de',
-            borderRadius: '6px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            marginBottom: '8px'
-          }}
-          onMouseOver={(e) => {
-            e.target.style.background = '#f3f4f6'
-            e.target.style.borderColor = '#d0d7de'
-          }}
-          onMouseOut={(e) => {
-            e.target.style.background = '#f6f8fa'
-            e.target.style.borderColor = '#d0d7de'
-          }}
-        >
-          画像を選択
-        </label>
-        <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '16px' }}>
-          JPEG、PNG、GIF、WebP形式（最大10MB）
         </div>
       </div>
-      
+
+  {/* ボタン・説明文は枠内に移動済み */}
+
       <div className="form-buttons">
-        <button 
+        <button
           type="button"
           onClick={handleCancel}
         >
           キャンセル
         </button>
-        <button 
+        <button
           type="button"
           disabled={isLoading}
           onClick={handleSave}
@@ -328,7 +380,7 @@ function ProfileAvatar({ user, onUpdate }) {
           {isLoading ? '保存中...' : '保存'}
         </button>
       </div>
-      
+
       <Toast
         isVisible={toast.isVisible}
         message={toast.message}

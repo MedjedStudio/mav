@@ -64,6 +64,13 @@ function App() {
       removeToken()
     }
     setIsLoading(false)
+      // グローバルなログアウト関数をwindowに登録
+      window.handleGlobalLogout = () => {
+        removeToken()
+        setUser(null)
+        setView('public')
+        setShowLoginModal(true)
+      }
   }
 
   const handleLogin = async (email, password) => {

@@ -21,5 +21,24 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// 401エラー時に自動ログアウト
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // トークン削除
+      localStorage.removeItem('token')
+      // グローバルなログアウト関数があれば呼び出し
+      if (typeof window !== 'undefined' && typeof window.handleGlobalLogout === 'function') {
+        window.handleGlobalLogout()
+      } else {
+        // フォールバック: ページリロード
+        window.location.reload()
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 export { api }
 export { API_BASE_URL }
