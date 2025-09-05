@@ -148,16 +148,31 @@ class BackupService:
     def import_database_data(self, data: Dict[str, Any]) -> None:
         """データベースにデータをインポート"""
         # 既存のデータをクリア（外部キー制約を考慮した正しい順序）
-        # 1. 中間テーブルを直接削除
-        self.db.execute(text("DELETE FROM content_categories"))
-        # 2. 外部キーを持つ子テーブルから削除
-        self.db.query(AvatarModel).delete()  # avatars（users.idを参照）
-        self.db.query(FileModel).delete()  # files（users.idを参照）
-        self.db.query(ContentModel).delete()  # contents
-        # 3. 参照される側のテーブル
-        self.db.query(CategoryModel).delete()  # categories
-        self.db.query(UserModel).delete()  # users
-        self.db.commit()
+        # MySQLタイムアウト対策のため個別にコミット
+        try:
+            # 1. 中間テーブルを直接削除
+            self.db.execute(text("DELETE FROM content_categories"))
+            self.db.commit()
+            
+            # 2. 外部キーを持つ子テーブルから削除
+            self.db.query(AvatarModel).delete()  # avatars（users.idを参照）
+            self.db.commit()
+            
+            self.db.query(FileModel).delete()  # files（users.idを参照）
+            self.db.commit()
+            
+            self.db.query(ContentModel).delete()  # contents
+            self.db.commit()
+            
+            # 3. 参照される側のテーブル
+            self.db.query(CategoryModel).delete()  # categories
+            self.db.commit()
+            
+            self.db.query(UserModel).delete()  # users
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            raise e
         
         # ユーザーデータを復元
         for user_data in data.get("users", []):

@@ -149,8 +149,13 @@ UPLOAD_DIR=/var/source/mav/backend/uploads
 ### 4. フロントエンドビルド
 
 ```bash
-# フロントエンドディレクトリでビルドスクリプトを実行
+# フロントエンド環境変数を設定
 cd frontend
+cp .env.example .env
+vi .env
+# VITE_API_URL を本番ドメインに変更: https://your-domain.com/api
+
+# フロントエンドディレクトリでビルドスクリプトを実行
 sudo ./build.sh
 cd ..
 ```
