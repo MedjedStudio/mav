@@ -155,16 +155,16 @@ class BackupService:
         # 既存のデータをクリア（外部キー制約を考慮した正しい順序）
         # MySQLタイムアウト対策のため個別にコミット
         try:
-            logger.info("データベースクリア開始")
-            logger.debug(f"セッション状態: active={self.db.is_active}, in_transaction={self.db.in_transaction()}")
+            print("=== データベースクリア開始 ===")
+            print(f"セッション状態: active={self.db.is_active}, in_transaction={self.db.in_transaction()}")
             
             # 1. 中間テーブルを削除
-            logger.info("content_categoriesテーブルの削除開始")
+            print("content_categoriesテーブルの削除開始")
             start_time = datetime.now()
             self.db.execute(text("DELETE FROM content_categories"))
             self.db.commit()
             elapsed = (datetime.now() - start_time).total_seconds()
-            logger.info(f"content_categoriesテーブル削除完了: {elapsed:.3f}秒")
+            print(f"content_categoriesテーブル削除完了: {elapsed:.3f}秒")
             
             # 2. 外部キーを持つ子テーブルから削除
             logger.info("avatarsテーブルの削除開始")
@@ -205,7 +205,7 @@ class BackupService:
             
             logger.info("全テーブル削除完了")
         except Exception as e:
-            logger.error(f"データベース削除中にエラー: {e}")
+            print(f"=== エラー発生: {e} ===")
             self.db.rollback()
             raise e
         
