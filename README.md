@@ -264,6 +264,29 @@ docker compose exec backend alembic history
 docker compose exec mysql mysql -u mav_user -pmav_password mav_db
 ```
 
+### データベース削除（本番環境）
+
+```bash
+# MySQLに接続
+mysql -u mav_user -p mav_db
+
+# 全テーブルのデータ削除（外部キー制約対応）
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS content_categories;
+DROP TABLE IF EXISTS files;
+DROP TABLE IF EXISTS contents;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS alembic_version;
+SET FOREIGN_KEY_CHECKS = 1;
+EXIT;
+
+# マイグレーション再実行
+cd /var/source/mav/backend
+source venv/bin/activate
+alembic upgrade head
+```
+
 ---
 
 ## APIテスト例
