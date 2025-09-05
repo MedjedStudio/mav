@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.env
+.venv
+.vscode/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+backend/logs/*.log
+backend/logs/*.out
+!backend/logs/
+!backend/logs/.gitkeep
+
+# Node.js (Frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.db
+*.sqlite
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Docker
+.dockerignore
+
+# Alembic
+alembic/versions/*
+!alembic/versions/001_initial_tables.py
+
+# Application specific
+backend/output/
+
+# Uploaded files
+backend/uploads/**/*
+!backend/uploads/.gitkeep
+!backend/uploads/files/
+!backend/uploads/files/.gitkeep
+!backend/uploads/avatars/
+!backend/uploads/avatars/.gitkeep
+
+# Claude development notes
+.claude_notes.md

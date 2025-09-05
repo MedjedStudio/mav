@@ -1,0 +1,17 @@
+[Unit]
+Description=mav Backend Service
+After=network.target mysql.service
+
+[Service]
+Type=exec
+User=YOUR_USERNAME
+Group=YOUR_USERNAME
+WorkingDirectory=/path/to/mav/backend
+Environment=PATH=/path/to/mav/backend/venv/bin
+EnvironmentFile=/path/to/mav/backend/.env
+ExecStart=/path/to/mav/backend/venv/bin/gunicorn app:app -w 1 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8000 --timeout 600 --access-logfile logs/access.log --error-logfile logs/error.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
