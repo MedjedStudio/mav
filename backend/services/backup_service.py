@@ -4,7 +4,6 @@ import json
 import zipfile
 import shutil
 import tempfile
-import logging
 from datetime import datetime
 from typing import Any, Dict
 from pathlib import Path
@@ -12,10 +11,6 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import text
 
 from infrastructure.models import ContentModel, CategoryModel, UserModel, UserRole, UserTimezone, FileModel, AvatarModel
-
-# デバッグログの設定
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 
 class BackupService:
@@ -155,57 +150,27 @@ class BackupService:
         # 既存のデータをクリア（外部キー制約を考慮した正しい順序）
         # MySQLタイムアウト対策のため個別にコミット
         try:
-            print("=== データベースクリア開始 ===")
-            print(f"セッション状態: active={self.db.is_active}, in_transaction={self.db.in_transaction()}")
-            
             # 1. 中間テーブルを削除
-            print("content_categoriesテーブルの削除開始")
-            start_time = datetime.now()
             self.db.execute(text("DELETE FROM content_categories"))
             self.db.commit()
-            elapsed = (datetime.now() - start_time).total_seconds()
-            print(f"content_categoriesテーブル削除完了: {elapsed:.3f}秒")
             
             # 2. 外部キーを持つ子テーブルから削除
-            logger.info("avatarsテーブルの削除開始")
-            start_time = datetime.now()
             self.db.query(AvatarModel).delete()
             self.db.commit()
-            elapsed = (datetime.now() - start_time).total_seconds()
-            logger.info(f"avatarsテーブル削除完了: {elapsed:.3f}秒")
             
-            logger.info("filesテーブルの削除開始")
-            start_time = datetime.now()
             self.db.query(FileModel).delete()
             self.db.commit()
-            elapsed = (datetime.now() - start_time).total_seconds()
-            logger.info(f"filesテーブル削除完了: {elapsed:.3f}秒")
             
-            logger.info("contentsテーブルの削除開始")
-            start_time = datetime.now()
             self.db.query(ContentModel).delete()
             self.db.commit()
-            elapsed = (datetime.now() - start_time).total_seconds()
-            logger.info(f"contentsテーブル削除完了: {elapsed:.3f}秒")
             
             # 3. 参照される側のテーブル
-            logger.info("categoriesテーブルの削除開始")
-            start_time = datetime.now()
             self.db.query(CategoryModel).delete()
             self.db.commit()
-            elapsed = (datetime.now() - start_time).total_seconds()
-            logger.info(f"categoriesテーブル削除完了: {elapsed:.3f}秒")
             
-            logger.info("usersテーブルの削除開始")
-            start_time = datetime.now()
             self.db.query(UserModel).delete()
             self.db.commit()
-            elapsed = (datetime.now() - start_time).total_seconds()
-            logger.info(f"usersテーブル削除完了: {elapsed:.3f}秒")
-            
-            logger.info("全テーブル削除完了")
         except Exception as e:
-            print(f"=== エラー発生: {e} ===")
             self.db.rollback()
             raise e
         
@@ -348,17 +313,11 @@ class BackupService:
                 db_data = json.load(f)
             
             # データベースを復元（新しいセッションを使用）
-            print("=== データベース復元開始（新しいセッション） ===")
             from infrastructure.database import SessionLocal
             fresh_db = SessionLocal()
             fresh_service = BackupService(fresh_db)
             try:
                 fresh_service.import_database_data(db_data)
-                print("=== データベース復元完了 ===")
-            except Exception as e:
-                print(f"=== データベース復元エラー: {e} ===")
-                fresh_db.rollback()
-                raise e
             finally:
                 fresh_db.close()
             
