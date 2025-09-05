@@ -274,6 +274,7 @@ mysql -u mav_user -p mav_db
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS content_categories;
 DROP TABLE IF EXISTS files;
+DROP TABLE IF EXISTS avatars;
 DROP TABLE IF EXISTS contents;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS users;
