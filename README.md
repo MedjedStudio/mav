@@ -1,6 +1,6 @@
-# mav - コンテンツ管理システム
+# mav
 
-FastAPI（Python）+ React（Vite）+ MySQLによる、管理・公開・バックアップ・権限管理が揃ったCMSです。
+FastAPI（Python）+ React（Vite）+ MySQLによるCMS。
 
 ## 構成概要
 
@@ -25,14 +25,6 @@ mav/
 ├── docker-compose.yml
 └── README.md
 ```
-
-## 主要機能
-
-- 記事・カテゴリ・ファイル・ユーザー管理
-- プロフィール・権限管理
-- バックアップ・復元
-- 初期セットアップ（管理者アカウント作成）
-
 ---
 
 ## 開発環境セットアップ
@@ -66,7 +58,7 @@ docker compose run --rm migrate
 
 ### 4. 初期セットアップ
 
-初回アクセス時、管理者アカウントのセットアップ画面が表示されます。
+初回アクセス時、管理者アカウントのセットアップ画面が表示されます。 
 画面の指示に従って管理者アカウントを作成してください。
 
 ### 5. 初期セットアップのテスト
@@ -74,7 +66,10 @@ docker compose run --rm migrate
 初期セットアップ機能をテストする場合：
 
 ```bash
-# 現在のコンテナを停止・削除（データベースも削除）
+# 現在のコンテナを停止
+docker compose down
+
+# DBも削除する場合は -v オプションを付与
 docker compose down -v
 
 # 新しい環境で起動
@@ -88,7 +83,7 @@ docker compose run --rm migrate
 
 ## 本番環境デプロイ
 
-本番環境では、パフォーマンスとセキュリティを向上させるため、Docker ではなく直接システムにデプロイします。
+本番環境では、パフォーマンスを向上させるため、Docker ではなく直接システムにデプロイします。
 
 ### 1. システム準備
 
@@ -151,7 +146,16 @@ VITE_API_URL=https://mav.your-domain.com/api
 UPLOAD_DIR=/var/source/mav/backend/uploads
 ```
 
-### 4. バックエンド設定
+### 4. フロントエンドビルド
+
+```bash
+# フロントエンドディレクトリでビルドスクリプトを実行
+cd frontend
+sudo ./build.sh
+cd ..
+```
+
+### 5. バックエンド設定
 
 ```bash
 # Python仮想環境を作成・有効化
@@ -164,15 +168,6 @@ pip install -r backend/requirements.txt
 # データベースマイグレーション実行
 cd backend
 alembic upgrade head
-cd ..
-```
-
-### 5. フロントエンドビルド
-
-```bash
-# フロントエンドディレクトリでビルドスクリプトを実行
-cd frontend
-sudo ./build.sh
 cd ..
 ```
 
@@ -214,7 +209,7 @@ sudo systemctl status mav-backend
 
 ```bash
 # バックエンドAPI確認
-curl -f https://mav.your-domain.com/api/auth/setup-status
+curl -f https://your-domain.com/api/auth/setup-status
 
 # ログ確認
 sudo journalctl -u mav-backend -f
@@ -222,52 +217,7 @@ sudo journalctl -u mav-backend -f
 
 ### 9. 初期セットアップ
 
-ブラウザで `https://mav.your-domain.com` にアクセスし、管理者アカウントを作成してください。
-
----
-
-## APIエンドポイント
-
-### 認証
-
-- `GET /auth/setup-status` - 初期セットアップ状態確認
-- `POST /auth/initial-setup` - 初期管理者作成
-- `POST /auth/login` - ログイン
-- `GET /auth/me` - ユーザー情報取得
-- `PUT /auth/profile` - プロファイル更新
-- `PUT /auth/password` - パスワード変更
-
-### コンテンツ管理（管理者のみ）
-
-- `POST /contents/` - コンテンツ作成
-- `PUT /contents/{id}` - コンテンツ更新
-- `DELETE /contents/{id}` - コンテンツ削除
-- `GET /contents/admin` - 管理者用コンテンツ一覧
-
-### 公開API
-
-- `GET /contents/` - 公開コンテンツ一覧
-- `GET /contents/{id}` - 個別コンテンツ取得
-- `GET /categories/` - カテゴリ一覧
-
-### カテゴリ管理（管理者のみ）
-
-- `POST /categories/` - カテゴリ作成
-- `PUT /categories/{id}` - カテゴリ更新
-- `DELETE /categories/{id}` - カテゴリ削除
-
-### ファイル管理
-
-- `POST /uploads/upload` - ファイルアップロード
-- `GET /uploads/` - ファイル一覧取得
-- `GET /uploads/{filename}` - ファイル取得
-- `DELETE /uploads/{filename}` - ファイル削除
-
-### バックアップ・復元（管理者のみ）
-
-- `GET /backup/info` - バックアップ情報取得
-- `GET /backup/download` - バックアップファイルダウンロード
-- `POST /backup/restore` - バックアップファイルから復元
+ブラウザで `https://your-domain.com` にアクセスし、管理者アカウントを作成してください。
 
 ---
 
@@ -446,15 +396,15 @@ sudo systemctl reload nginx
 # 最新コードを取得
 git pull
 
+# フロントエンドの再ビルド
+cd frontend
+sudo ./build.sh
+cd ..
+
 # 依存関係の更新（必要に応じて）
 cd backend
 source venv/bin/activate
 pip install -r requirements.txt
-cd ..
-
-# フロントエンドの再ビルド
-cd frontend
-sudo ./build.sh
 cd ..
 
 # バックエンドサービスの再起動
@@ -481,33 +431,5 @@ vi .env
 cd frontend
 sudo ./build.sh
 cd ..
-sudo systemctl restart mav-backend
-```
-
-### 重要な注意点
-
-- **環境変数変更時**: `.env`変更後は必ず: `docker compose down -v && docker compose up --build -d`
-- **ネットワーク問題**: 192.168.1.x でアクセス時は、VITE_API_URL と CORS_ORIGINS も同じIPを使用
-- **MySQL SSL問題**: マイグレーション無限ループ時: migrate.sh で `--skip-ssl` オプション追加
-
----
-
-## パフォーマンス最適化
-
-### 推奨スペック
-
-- **最小**: 1vCPU, 1GB RAM, 20GB SSD
-- **推奨**: 2vCPU, 2GB RAM, 40GB SSD
-- **高負荷**: 4vCPU, 4GB RAM, 100GB SSD
-
-### Gunicornワーカー数調整
-
-```bash
-# systemd/mav-backend.service でワーカー数を調整
-# CPUコア数 x 2 + 1 が目安（デフォルト: 4）
-ExecStart=...gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker...
-
-# サービス再起動
-sudo systemctl daemon-reload
 sudo systemctl restart mav-backend
 ```
