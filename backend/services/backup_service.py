@@ -347,8 +347,20 @@ class BackupService:
             with open(db_file, 'r', encoding='utf-8') as f:
                 db_data = json.load(f)
             
-            # データベースを復元
-            self.import_database_data(db_data)
+            # データベースを復元（新しいセッションを使用）
+            print("=== データベース復元開始（新しいセッション） ===")
+            from infrastructure.database import SessionLocal
+            fresh_db = SessionLocal()
+            fresh_service = BackupService(fresh_db)
+            try:
+                fresh_service.import_database_data(db_data)
+                print("=== データベース復元完了 ===")
+            except Exception as e:
+                print(f"=== データベース復元エラー: {e} ===")
+                fresh_db.rollback()
+                raise e
+            finally:
+                fresh_db.close()
             
             # ファイルを復元
             self.restore_files(zip_file_path, upload_dir)
